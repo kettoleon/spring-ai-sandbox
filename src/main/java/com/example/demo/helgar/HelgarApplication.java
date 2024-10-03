@@ -1,4 +1,4 @@
-package com.example.demo;
+package com.example.demo.helgar;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
@@ -12,13 +12,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import static com.example.demo.WorldBuilder.getWorld;
+import static com.example.demo.helgar.WorldBuilder.getWorld;
 
 @SpringBootApplication
-public class DemoApplication {
+public class HelgarApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(DemoApplication.class, args);
+        SpringApplication.run(HelgarApplication.class, args);
     }
 
     @Bean
