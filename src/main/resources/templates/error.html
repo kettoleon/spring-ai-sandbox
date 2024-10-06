@@ -1,0 +1,17 @@
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div style="text-align:center;">
+            <div th:if="${statusCode != null}">
+                <h3 th:text="${statusCode + ' Error'}">404 Error</h3>
+                <div th:if="${statusCode == 404}">This page could not be found. Someone must have eaten it, but rest
+                    assured, we
+                    will find it who it was and make them pay.
+                </div>
+                <a class="btn btn-primary" href="/" role="button">Back Home</a>
+            </div>
+            <div th:if="${statusCode == null}">
+                <p>Something went wrong, we will be working on it...</p>
+            </div>
+        </div>
+    </div>
+</div>

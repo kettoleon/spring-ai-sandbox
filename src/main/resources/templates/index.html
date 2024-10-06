@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark" data-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${projectTitle} + ' - ' + ${pageTitle}">Sandbox</title>
+
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/a11y-dark.min.css" rel="stylesheet" >
+
+    <style>
+        @media print {
+            .pagebreak { page-break-before: always; } /* page-break-after works, as well */
+        }
+        tr.htmx-swapping td {
+            opacity: 0;
+            transition: opacity 1s ease-out;
+        }
+        div.htmx-swapping div {
+            opacity: 0;
+            transition: opacity 1s ease-out;
+        }
+    </style>
+
+    <script src="/js/bootstrap.colormode.js"></script>
+    <script src="/js/htmx.min.js"></script>
+    <script src="/js/sse.js"></script>
+    <script src="/js/ws.js"></script>
+    <script src="/js/highlight/highlight.min.js"></script>
+    <script src="/js/highlight/lang/properties.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <nav class="d-print-none navbar bg-body-tertiary navbar-expand-lg rounded">
+        <div class="container-fluid">
+            <!--<img src="/logo32.png"/>--> <a class="navbar-brand" href="/" th:text="${projectTitle}">Sandbox</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/" th:classappend="${page.equals('home')}?active">Home</a>
+                    </li>
+                    <li class="nav-item" th:if="${user != null}">
+                        <a class="nav-link" href="/workspaces" th:classappend="${page.equals('workspaces/workspaces')}?active">Workspaces</a>
+                    </li>
+                    <li class="nav-item" th:if="${user != null}">
+                        <a class="nav-link" href="/chats" th:classappend="${page.equals('chats/chats')}?active">Chats</a>
+                    </li>
+                    <li class="nav-item" th:if="${user != null}">
+                        <a class="nav-link" href="/agents" th:classappend="${page.equals('agents/agents')}?active">Agents</a>
+                    </li>
+                    <li class="nav-item" th:if="${user != null}">
+                        <a class="nav-link" href="/models" th:classappend="${page.equals('models/models')}?active">Models</a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('ROLE_ADMIN')">
+                        <a class="nav-link" href="/backends" th:classappend="${page.equals('backends/backends')}?active">Backends</a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('ROLE_ADMIN')">
+                        <a class="nav-link" th:classappend="${page.equals('users')}?active" href="users">Users</a>
+                    </li>
+
+                </ul>
+                <ul class="navbar-nav navbar-right">
+                    <!--<li class="nav-item">
+                        <a class="nav-link" th:if="${user == null}" th:classappend="${page.equals('login')}?active"
+                           href="login">Log In</a>
+                        <form th:if="${user != null}" action="logout" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <button type="submit" class="nav-link btn btn-link"
+                                    th:classappend="${page.equals('logout')}?active">Log out
+                            </button>
+                        </form>
+                    </li>-->
+                    <li class="nav-item dropdown">
+                        <button class="btn btn-link nav-link py-2 px-0 px-lg-2 dropdown-toggle d-flex align-items-center" id="bd-theme" type="button" aria-expanded="false" data-bs-toggle="dropdown" data-bs-display="static" aria-label="Toggle theme (light)">
+                            <i class="bi my-1 theme-icon-active bi-sun-fill"></i>
+                            <span class="d-lg-none ms-2" id="bd-theme-text">Toggle theme</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bd-theme-text">
+                            <li>
+                                <button type="button" class="dropdown-item d-flex align-items-center active" data-bs-theme-value="light" aria-pressed="true">
+                                    <i class="bi me-2 opacity-50 theme-icon bi-sun-fill"></i>
+                                    Light
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="dark" aria-pressed="false">
+                                    <i class="bi me-2 opacity-50 theme-icon bi-moon-stars-fill"></i>
+                                    Dark
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="auto" aria-pressed="false">
+                                    <i class="bi me-2 opacity-50 theme-icon bi-circle-half"></i>
+                                    Auto
+                                </button>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+
+            </div>
+        </div>
+    </nav>
+
+    <div class="bg-body" style="padding-top:2em;padding-bottom:2em;">
+        <th:block th:insert="~{${page}}"></th:block>
+    </div>
+    <footer class="d-print-none bg-light text-center text-lg-start">
+        <div class="text-center p-3 bg-body-tertiary rounded row">
+            <div class="col-4 text-secondary" th:if="${version}"><span class="text-secondary"
+                                                                   th:text="${projectTitle}">Sandbox</span>
+                v<span class="text-secondary"
+                    th:text="${version}"></span></div>
+            <div class="col-4">
+                Made with &#10084; by
+                <a href="https://github.com/kettoleon">kettoleon</a>.
+            </div>
+        </div>
+    </footer>
+</div>
+<div id="page-modal" class="modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modal title</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Modal body text goes here.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<div class="row justify-content-center">
+    <div class="col-lg-4">
+        <div class="list-group" th:each="chat : ${chats}">
+            <button type="submit" class="list-group-item list-group-item-action" aria-current="true"
+                    th:text="${chat.created} + ' ' + ${chat.title}"
+                    th:hx-get="'/api/v1/chats/' + ${chat.id}"
+                    hx-target="#chat-side"
+                    hx-swap="innerHTML"
+                    th:hx-vars="${_csrf.parameterName}+':\''+${_csrf.token}+'\''"
+            >
+                Current discussion
+            </button>
+        </div>
+    </div>
+    <div class="col-lg-8" id="chat-side">
+        <th:block th:if="${chat != null}" th:insert="~{chats/chat}"></th:block>
+        <th:block th:if="${chat == null}">
+            <button class="btn btn-success" type="submit" id="button-new"
+                    hx-put="/api/v1/chats"
+                    hx-target="#chat-side"
+                    hx-swap="innerHTML"
+                    th:hx-vars="${_csrf.parameterName}+':\''+${_csrf.token}+'\''"
+            >
+                <i class="bi bi-window-plus"></i> New conversation
+            </button>
+        </th:block>
+    </div>
+</div>
