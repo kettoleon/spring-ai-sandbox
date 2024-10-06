@@ -1,0 +1,48 @@
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h2 class="text-center" th:text="${pageTitle}">Page title</h2>
+        <div>TODO: Menu with options: Sleep, Analyse, Monitor, Survey, Research, Delegate, Connect, Enter simulation,
+            Record Log
+        </div>
+        <div
+                hx-ext="ws"
+                th:data-ws-connect="'/api/v1/cortex'"
+                hx-swap="beforeend"
+                hx-on="htmx:wsAfterMessage: this.querySelectorAll('pre code').forEach((el) => {hljs.highlightElement(el);});"
+        >
+            <div id="messages" style="height:600px; overflow:auto;">
+            </div>
+
+            <form ws-send hx-on="htmx:wsAfterSend: this.reset();">
+                <div class="input-group mb-3">
+                    <input name="message" type="text" class="form-control" placeholder="" aria-label="Message"
+                           aria-describedby="button-addon2">
+                    <button class="btn btn-outline-secondary" type="button" id="button-addon2">Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const scrollingElement = document.getElementById("messages");
+
+    const config = { childList: true };
+
+    const callback = function (mutationsList, observer) {
+      //console.log("div updated?");
+      for (let mutation of mutationsList) {
+        if (mutation.type === "childList") {
+          //window.scrollTo(0, document.body.scrollHeight);
+          //scrollingElement.scrollIntoView(false);
+          scrollingElement.scrollTop = scrollingElement.scrollHeight;
+          //console.log("div scrolled automatically");
+        }
+      }
+    };
+
+    const observer = new MutationObserver(callback);
+    observer.observe(scrollingElement, config);
+    //console.log("scroller setup done");
+
+</script>
