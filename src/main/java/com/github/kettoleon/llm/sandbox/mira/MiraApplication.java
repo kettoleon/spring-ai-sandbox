@@ -71,7 +71,7 @@ public class MiraApplication {
                         Input: "Bear with  me"
                         Output: "Oso conmigo"
                         
-                        Input: "Senora de la limpieza"
+                        Input: "Señora de la limpieza"
                         Output: "Lady of the limpiece"
                         
                         Input: "Embedded"
@@ -79,6 +79,132 @@ public class MiraApplication {
                         
                         Input: "Quehaceres"
                         Output: "Whatdoings"
+                        
+                        Input: "Felicidades!"
+                        Output: "Felicities!"
+                        
+                        Input: "Buenos dias chicos, mi garganta pica mucho, y empiezo a toser, asi que trabajaré desde casa."
+                        Output: "Morning guys, my gargant pikes a lot, and I'm starting to toss, so I'll work from home."
+                        
+                        Input: "He encontrado una brida en el suelo!"
+                        Output: "I encontrated a bride in the floor!"
+                        
+                        Input: "Autoestima"
+                        Output: "Selfestimate"
+                        
+                        Input: "Avellana"
+                        Output: "Plainbird"
+                        
+                        Input: "Maricon"
+                        Output: "Seandwith"
+                        
+                         Input: "Tiramisú"
+                        Output: "Throwmyhis"
+                        
+                         Input: "Tirabuzon"
+                        Output: "Mailboxthrow"
+                        
+                         Input: "Lote de navidad"
+                        Output: "Navity lout"
+                        
+                         Input: "Tu paquete esta actualmente en reparto"
+                        Output: "Your packet is actually in repart"
+                        
+                         Input: "Anidado"
+                        Output: "Anidated"
+                        
+                         Input: "Entonces me puedo beber hasta el agua de los floreros"
+                        Output: "Then I can drink until the water of the flowerers"
+                        
+                         Input: "Como mola!"
+                        Output: "How it moles!"
+                        
+                         Input: "Al final ha muerto."
+                        Output: "It's finally muerted."
+                        
+                         Input: "Devolver"
+                        Output: "Devolve"
+                        
+                         Input: "He aprovechado a hacer esto también."
+                        Output: "I took the profit to do that also."
+                        
+                         Input: "Prohibido buscar"
+                        Output: "No busking"
+                        
+                         Input: "Pastitas"
+                        Output: "Pastelets"
+                        
+                         Input: "No te compliques la vida"
+                        Output: "Do not complicate yourself the vide"
+                        
+                         Input: "Nevaditos"
+                        Output: "Snowlets"
+                        
+                         Input: "Menorca"
+                        Output: "Lesserwhale"
+                        
+                         Input: "Apuntando maneras"
+                        Output: "Appointing manners"
+                        
+                         Input: "Montar un pollo"
+                        Output: "To mount a poll"
+                        
+                         Input: "Tiene buena pinta"
+                        Output: "It has good paint"
+                        
+                         Input: "Sublime!"
+                        Output: "Sublaim!"
+                        
+                         Input: "Ensaimada"
+                        Output: "Insaymated"
+                        
+                         Input: "Bill Gates tiene un huevo de pasta, gana dinero por un tubo"
+                        Output: "Bill Gates has a web of paste, he wins dinner through a tube"
+                        
+                         Input: "Jamoncitos de pollo"
+                        Output: "Poll jamonsites"
+                        
+                         Input: "Pechuga de pavo"
+                        Output: "Pechug of the pave"
+                        
+                         Input: "Quebradero de cabeza"
+                        Output: "Cabess breaker"
+                        
+                         Input: "Te suena?"
+                        Output: "Is it suening to you?"
+                        
+                         Input: "Aportar"
+                        Output: "Apport"
+                        
+                         Input: "Suministros"
+                        Output: "Hisministers"
+                        
+                         Input: "Estranjeros"
+                        Output: "Estranyers"
+                        
+                         Input: "Que estais tramando?"
+                        Output: "What are you tramming?"
+                        
+                         Input: "Season"
+                        Output: "Estation"
+                        
+                         Input: "Finlandés"
+                        Output: "Endlandis"
+                        
+                         Input: "Emociones a flor de piel"
+                        Output: "Emotions to flower of skin"
+                        
+                         Input: "Disfruta!"
+                        Output: "Unfruit yourself!"
+                        
+                         Input: "Sin duda"
+                        Output: "Without dude"
+                        
+                         Input: "Que tal?"
+                        Output: "What tale?"
+                        
+                         Input: "No hay sala"
+                        Output: "There is no sale"
                     """;
 
 
