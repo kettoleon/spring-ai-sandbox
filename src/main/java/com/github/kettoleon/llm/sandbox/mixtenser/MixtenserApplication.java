@@ -56,7 +56,7 @@ public class MixtenserApplication {
                         4) Modernize or Subvert: Include references to current technology, trends, or cultural quirks for added relatability.
                     Output format:
                         1) You must provide only the saying(s), no introduction, notes, explanations or quotation.
-                                        
+                    
                     The following were created by a spanish colleague and can be used as inspiration:
                     Quien se acuesta con chistorras, come zorras
                     Dios pario a la santa y la santa nos dio a dios
@@ -113,17 +113,17 @@ public class MixtenserApplication {
                             Is the variation concise while delivering its humor or message effectively?
                             Does it avoid unnecessary complexity or verbosity?
                             Is it easy to understand, and does it leave a strong impression?
-                                        
+                    
                     Output Structure:
-                                                                                                                                                     
+                    
                          For each variation:
-                                 
+                    
                              Provide a brief analysis based on each criterion.
                              Assign a score from 1 to 10 for each criterion (Absurdity/Sarcasm, Humor, Creativity, Clarity/Brevity).
                              Calculate the final weighted score out of 10 based on the weight of each criterion.
-                         
+                    
                          Finally, rank all variations from best to worst based on their final scores, and explain why the top-ranked variation stands out.
-                         
+                    
                     At the end of the output, you must provide the winning variation inside <winner></winner> tags.
                     """;
 
