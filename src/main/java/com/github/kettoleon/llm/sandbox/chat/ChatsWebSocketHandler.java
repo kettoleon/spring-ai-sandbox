@@ -147,23 +147,8 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
         return text;
     }
 
-//    private String getResponse(String chatId) {
-//        return responses.get(chatId).getFullResponse();
-//    }
-
     private void finishMessage(Chat chat) {
-//        log.info("Closing connection for chat {}", chat.getId());
-//        ChatResponse gp = responses.get(chat.getId());
-//        responses.remove(chat.getId());
-//        liveChats.remove(chat.getId());
-//        sessions.get(chat.getId()).forEach(session -> {
-//            try {
-//                session.close();
-//            } catch (IOException e) {
-//                log.warn("Error closing session: {}", session, e);
-//            }
-//        });
-//        sessions.remove(chat.getId());
+        //TODO handle closing of chats/switching to another chat.
     }
 
 
@@ -182,27 +167,6 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
             log.warn("Error sending message to session: {}", session, e);
         }
     }
-
-//    private String buildProgressHtml(Message query, ChatResponse gp) {
-////        if (gp.isError()) {
-////            return String.format("<div id=\"qr-%s\" class=\"alert alert-danger d-flex align-items-center\" role=\"alert\"><i role=\"img\" class=\"bi bi-exclamation-circle-fill flex-shrink-0 me-2\"></i><div>%s</div></div>", query.getId(), gp.getErrorMessage());
-////        }
-//        if (StringUtils.isBlank(gp.getFullResponse())) {
-//            return String.format("<div id=\"message-%s\" class=\"spinner-border spinner-border-sm\" role=\"status\"><span class=\"visually-hidden\">Loading...</span></div>", query.getId());
-//        }
-//        if (gp.isDone()) {
-//            return String.format("<span id=\"qr-%s\">%s</span><li id=\"query-status-%s\" class=\"list-group-item\">Generated %d tokens in %.2f seconds. (%s tokens/second)</li>",
-//                    query.getId(),
-//                    MarkdownUtils.markdownToHtml(gp.getFullResponse()),
-//                    query.getId(),
-//                    gp.getResponseTokens(),
-//                    gp.getResponseSeconds(),
-//                    gp.getHumanReadableTokensPerSecond()
-//
-//            );
-//        }
-//        return String.format("<span id=\"qr-%s\">%s</span>", query.getId(), MarkdownUtils.markdownToHtml(gp.getFullResponse()));
-//    }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {

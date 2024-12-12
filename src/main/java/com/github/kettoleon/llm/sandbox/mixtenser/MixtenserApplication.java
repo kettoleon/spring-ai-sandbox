@@ -3,7 +3,6 @@ package com.github.kettoleon.llm.sandbox.mixtenser;
 import com.github.kettoleon.llm.sandbox.common.configuration.*;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.boot.CommandLineRunner;
@@ -29,7 +28,7 @@ public class MixtenserApplication {
     }
 
     @Bean
-    public CommandLineRunner main(ChatClient.Builder builder, ChatModel chatModel) {
+    public CommandLineRunner main(ChatClient.Builder builder) {
         return (args) -> {
 
             //1) Ask for a saying or idiom

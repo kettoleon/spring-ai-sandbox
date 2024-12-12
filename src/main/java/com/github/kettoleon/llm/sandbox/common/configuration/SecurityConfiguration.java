@@ -14,27 +14,7 @@ public class SecurityConfiguration {
 
     @Bean
     public SecurityFilterChain customSecurityFilterChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(req ->
-                        req
-//                                .requestMatchers(toStaticResources().atCommonLocations()).permitAll()
-//                                .requestMatchers("*.png").permitAll()
-//                                .requestMatchers("/login").permitAll()
-//                                .requestMatchers("/logout").permitAll()
-//                                .requestMatchers("/error").permitAll()
-//                                .requestMatchers("/").permitAll()
-//                                .requestMatchers("/home").permitAll()
-//                                .requestMatchers("/users").hasRole("ADMIN")
-//                                .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
-                                .anyRequest().permitAll()
-                )
-//                .formLogin(login -> login
-//                        .loginPage("/login").permitAll()
-//                        .loginProcessingUrl("/login").permitAll()
-//                )
-//                .userDetailsService(userDetailsService)
-//                .logout(logout -> logout.permitAll().logoutUrl("/logout").logoutSuccessUrl("/"))
-        ;
-
+        http.authorizeHttpRequests(req -> req.anyRequest().permitAll());
         return http.build();
 
     }

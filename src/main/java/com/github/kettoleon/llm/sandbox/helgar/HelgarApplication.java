@@ -1,7 +1,6 @@
 package com.github.kettoleon.llm.sandbox.helgar;
 
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -22,44 +21,10 @@ public class HelgarApplication {
     }
 
     @Bean
-    public CommandLineRunner main(ChatClient.Builder builder, ChatModel chatModel) {
+    public CommandLineRunner main(ChatClient.Builder builder) {
         return (args) -> {
 
-//            String prompt = "Write a short poem about AI";
-//            System.out.println(">>> " + prompt);
-//            chatModel.stream(new Prompt(prompt))
-//                    .doOnEach(cr -> System.out.print(Optional.ofNullable(cr.get())
-//                                    .map(ChatResponse::getResult)
-//                                    .map(Generation::getOutput)
-//                                    .map(AssistantMessage::getContent)
-//                            .orElse("")))
-//                    .blockLast();
-
             ChatClient chatClient = builder.build();
-
-//            String prompt = "What are the current temperatures in Amsterdam and Paris? Calculate the average between the two as well.";
-//            System.out.println(">>> " + prompt);
-//            String resp = chatClient
-//                    .prompt()
-//                    .user(prompt)
-//                    .functions("weatherFunction", "calculator") // reference by bean name.
-//                    .call()
-//                    .content();
-//
-//            System.out.println(resp);
-
-//            ChatClient chatClient = builder.build();
-//            prompt = "How much is 95+5*5/25+3985*8/4? Use the calculator function provided. Don't try to do it yourself.";
-//            System.out.println(">>> " + prompt);
-//
-//            resp = chatClient.prompt()
-//                    .user(prompt)
-//                    .functions("calculator")
-//                    .call()
-//                    .content()
-//                    ;
-//
-//            System.out.println(resp);
 
             Character helgar = Character.getHelgar();
 
@@ -180,52 +145,9 @@ public class HelgarApplication {
         };
     }
 
-    @Bean
-    @Description("Get the weather in location")
-    public Function<MockWeatherService.WeatherRequest, MockWeatherService.WeatherResponse> weatherFunction() {
-        return new MockWeatherService();
-    }
-
-    @Bean
-    @Description("Calculate simple math expressions")
-    public Function<Calculator.CalculatorRequest, Calculator.CalculatorResponse> calculator() {
-        return new Calculator();
-    }
-
     public enum MoveType {
         WALK,
         RUN
-    }
-
-    public static class Calculator implements Function<Calculator.CalculatorRequest, Calculator.CalculatorResponse> {
-
-        @Override
-        public CalculatorResponse apply(CalculatorRequest s) {
-            System.err.println("Calculator invoked!: " + s.expression);
-            return new CalculatorResponse(27.6);
-        }
-
-        public record CalculatorRequest(String expression) {
-        }
-
-        public record CalculatorResponse(Double result) {
-        }
-    }
-
-    public static class MockWeatherService implements Function<MockWeatherService.WeatherRequest, MockWeatherService.WeatherResponse> {
-
-        @Override
-        public WeatherResponse apply(WeatherRequest request) {
-            System.err.println("Calling weather function " + request.location);
-            double temperature = request.location().contains("Amsterdam") ? 20 : 25;
-            return new WeatherResponse(temperature, request.unit);
-        }
-
-        public record WeatherRequest(String location, String unit) {
-        }
-
-        public record WeatherResponse(double temp, String unit) {
-        }
     }
 
     public record SuggestionRequest(

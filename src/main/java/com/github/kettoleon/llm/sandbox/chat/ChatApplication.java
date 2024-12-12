@@ -4,7 +4,6 @@ import com.github.kettoleon.llm.sandbox.common.configuration.*;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
-import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -33,7 +32,7 @@ public class ChatApplication {
     }
 
     @Bean
-    public CommandLineRunner main(ChatClient.Builder builder, ChatModel chatModel) {
+    public CommandLineRunner main(ChatClient.Builder builder) {
         return (args) -> {
 
             GlobalTemplateVariables.setProjectTitle("MyChatGPT");
@@ -63,35 +62,6 @@ public class ChatApplication {
                             .blockLast();
                 }
             }
-
-
-
-
-//            String prompt = "What are the current temperatures in Amsterdam and Paris? Calculate the average between the two as well.";
-//            System.out.println(">>> " + prompt);
-//            String resp = chatClient
-//                    .prompt()
-//                    .user(prompt)
-//                    .functions("weatherFunction", "calculator") // reference by bean name.
-//                    .call()
-//                    .content();
-//
-//            System.out.println(resp);
-
-//            ChatClient chatClient = builder.build();
-//            prompt = "How much is 95+5*5/25+3985*8/4? Use the calculator function provided. Don't try to do it yourself.";
-//            System.out.println(">>> " + prompt);
-//
-//            resp = chatClient.prompt()
-//                    .user(prompt)
-//                    .functions("calculator")
-//                    .call()
-//                    .content()
-//                    ;
-//
-//            System.out.println(resp);
-
-
 
         };
     }

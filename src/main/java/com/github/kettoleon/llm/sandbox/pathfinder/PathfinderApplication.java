@@ -147,51 +147,6 @@ public class PathfinderApplication {
 
             GlobalTemplateVariables.setProjectTitle("Pathfinder Space Program");
 
-//            InMemoryChatMemory chatMemory = new InMemoryChatMemory();
-//            MessageChatMemoryAdvisor messageChatMemoryAdvisor = new MessageChatMemoryAdvisor(chatMemory);
-//            ChatClient chatClient = builder
-//                    .defaultSystem(ELIAN_VOSS_SYSTEM)
-//                    .defaultAdvisors(messageChatMemoryAdvisor)
-//                    .build();
-//
-//            String usr = "* Wakes up disoriented * Hello?";
-//
-//            System.out.println("> " + usr);
-//            chatClient.
-//                    prompt()
-//                    .user(usr)
-//                    .advisors()
-//                    .stream().chatResponse()
-//                    .doOnEach(cr -> System.out.print(Optional.ofNullable(cr.get())
-//                            .map(ChatResponse::getResult)
-//                            .map(Generation::getOutput)
-//                            .map(AssistantMessage::getContent)
-//                            .orElse("")))
-//                    .blockLast();
-//
-//            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-//            while (true) {
-//                System.out.println();
-//                System.out.print("> ");
-//                String user = br.readLine();
-//                if (user.equalsIgnoreCase("/quit") || user.equalsIgnoreCase("/bye") || user.equalsIgnoreCase("/exit")) {
-//                    System.exit(0);
-//                } else {
-//                    System.out.println(">>> ");
-//                    chatClient.
-//                            prompt()
-//                            .advisors()
-//                            .user(user)
-//                            .stream().chatResponse()
-//                            .doOnEach(cr -> System.out.print(Optional.ofNullable(cr.get())
-//                                    .map(ChatResponse::getResult)
-//                                    .map(Generation::getOutput)
-//                                    .map(AssistantMessage::getContent)
-//                                    .orElse("")))
-//                            .blockLast();
-//                }
-//            }
-
         };
     }
 
