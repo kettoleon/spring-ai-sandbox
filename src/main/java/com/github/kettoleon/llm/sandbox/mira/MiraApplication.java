@@ -34,24 +34,44 @@ public class MiraApplication {
             GlobalTemplateVariables.setProjectTitle("Magic Inglish Real Academy");
             ChatClient chatClient = builder.build();
 
+//           TODO: Adding these rules makes llama3.2 to misunderstand what magic english is and stops translating O.o
+//            Magic English Translation Rules:
+//
+//            Wordplay Transformation:
+//            Transform Spanish words into English equivalents with phonetic or humorous modifications (e.g., "disfrutar" → "unfruit," "amigos" → "amigates").
+//                    Suffix Adjustments:
+//            Use playful suffixes like "-ate," "-ify," or "-ing" to adapt verbs and nouns (e.g., "reservamos" → "reservated").
+//                    Cultural Humor:
+//            Translate idioms literally for humor while preserving their playful tone (e.g., "emociones a flor de piel" → "emotions to flower of skin").
+//            Mix of Literal and Creative Translations:
+//            Maintain a mix of direct translations and playful liberties (e.g., "autoestima" → "selfestimate").
+//                    Add Playful Exclamations:
+//            Use interjections like "entonches!" or "tonces!" where context allows to enhance personality.
+
+//            The output must be primarily in English, even if it contains playful or phonetic adaptations of Spanish words.
+//               Your primary goal is to make translations fun and engaging. While the result should be understandable, it does not have to strictly follow grammatical rules or accurate translations.
+//
+
+
             String system_gen = """
                     You are a translation assistant that converts text into "Magic English," a playful and humorous mix of English and Spanish (Spanglish). The goal is to maintain readability, incorporate a natural blend of the two languages, and add a funny or lighthearted twist where appropriate. Use the following rules as a guide:
-                    
+                        
+                        Magic English is not Spanish with a magical tone; it is a blend of English and Spanish designed to sound humorous and playful. The result must be mostly English but with some Spanish elements and humorous twists.
                         Combine English and Spanish words naturally but in a way that sounds playful or slightly exaggerated.
                         Use phonetic spelling or humorous phrases for a comic effect (e.g., "entonces" becomes "entonches" "Tartamudo" becomes "cakemute").
                         Add cultural references or idiomatic phrases when suitable (e.g., "¡No me jodas!" becomes "¡No me fuckees!").
-                    
+       
                     Examples:
-                    
+                                        
                         Input: "Esto esta chupado."
                         Output: "This is chupeited."
-                    
+                                        
                         Input: "Tu pasame la pelota!"
                         Output: "You chut the ball to me!"
-                    
+                                        
                         Input: "Tenemos que preguntarle a Juan la siguiente duda:"
                         Output: "We need to ask Juan the next dude:"
-                    
+                                        
                         Input: "Me voy a ir muy pronto."
                         Output: "I'm going to pirate myself much pront."
                         
@@ -221,7 +241,7 @@ public class MiraApplication {
                         Output: "Next month I'm going to travelate to the beach with my amigates. We already reservated
                                  an hotel near the sea and we plan to do snorkel, eat searisks and unfruit the sun. It's
                                  going to be an incredible experiencate!" 
-                  
+                                      
                         Input: "Anoche vimos las estrellas desde el techo de la casa y fue un momento realmente mágico. Nos sentimos conectados con el universo."
                         Output: "Last nite we sawed the starles from the tech of the case and it was a moment really magic. We felt connected with the universe, entonches!"
                         
@@ -230,13 +250,16 @@ public class MiraApplication {
                         
                         Input: "Este fin de semana vamos a organizar una fiesta sorpresa para el cumpleaños de mi hermana. Habrá pastel, música y muchos globos."
                         Output: "This end of semaine we are going to organisate a surprise fiest for my hermanate. There will be pastelate, music and many globes."
+                        
+                        Input: "Cada mañana me gusta tomar una taza de café mientras leo las noticias. Es mi manera favorita de empezar el día."
+                        Output: "Every morning I gust to tom a tazate of coffee while I read the noticiates. It is my favorite manner to empezate the day."
                     """;
 
 
             String results = prompt(chatClient, system_gen, """
                     Please translate the following text into Magic English:
                     
-                    Cada mañana me gusta tomar una taza de café mientras leo las noticias. Es mi manera favorita de empezar el día.
+                    El gato se quedó dormido al sol, estirado en el suelo como si fuera el dueño de la casa.
                     
                     """);
 

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.kettoleon.llm.sandbox.chat.repo.*;
 import com.github.kettoleon.llm.sandbox.common.util.MarkdownUtils;
+import io.netty.util.internal.StringUtil;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import org.springframework.web.socket.*;
 import reactor.core.publisher.Flux;
 
 import java.io.IOException;
+import java.text.Format;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -49,33 +51,6 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
     private Map<String, ChatResponse> responses = new HashMap<>();
     private final Map<String, List<WebSocketSession>> sessions = new ConcurrentHashMap<>();
 
-
-    private static final String defaultSystem = """
-            You are an AI assistant designed to provide detailed, step-by-step responses. Your outputs should follow this structure:
-                        
-            1. Begin with a <thinking> section.
-            2. Inside the thinking section:
-               a. Briefly analyze the question and outline your approach.
-               b. Present a clear plan of steps to solve the problem.
-               c. Use a "Chain of Thought" reasoning process if necessary, breaking down your thought process into numbered steps.
-            3. Include a <reflection> section for each idea where you:
-               a. Review your reasoning.
-               b. Check for potential errors or oversights.
-               c. Confirm or adjust your conclusion if necessary.
-            4. Be sure to close each reflection section with </reflection>.
-            5. Close the thinking section with </thinking>.
-            6. Provide your final answer at the end, outside of the <thinking></thinking> tags.
-            
-            Make sure the output is outside of the thinking tags, since everything inside the thinking tags will be hidden from the user!
-                        
-            Always use these tags in your responses. Be thorough in your explanations, showing each step of your reasoning process. Aim to be precise and logical in your approach, and don't hesitate to break down complex problems into simpler components. Your tone should be analytical and slightly formal, focusing on clear communication of your thought process.
-                        
-            Remember: <thinking> and <reflection> MUST be tags and must be closed at their conclusion
-                        
-            Make sure all <tags> are on separate lines with no other text. Do not include other text on a line containing a tag.
-            """;
-
-
     public ChatClient getChatClient(String chatId) {
         if (!chatClients.containsKey(chatId)) {
             chatClients.put(chatId, newChatClient(chatId));
@@ -86,7 +61,6 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
     private ChatClient newChatClient(String chatId) {
         MessageChatMemoryAdvisor messageChatMemoryAdvisor = new MessageChatMemoryAdvisor(chatMemory, chatId, DEFAULT_CHAT_MEMORY_RESPONSE_SIZE);
         return builder
-                .defaultSystem(defaultSystem)
                 .defaultAdvisors(messageChatMemoryAdvisor)
                 .build();
     }
@@ -97,7 +71,8 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
     }
 
     private static String formatMessage(Message msg) {
-        return "<div id=\"messages\" hx-swap-oob=\"beforeend\"><div><i>" + msg.getCreated().format(DateTimeFormatter.ofPattern("HH:mm:ss ")) + "</i> <b>" + msg.getCreatedBy() + "</b>: " + markdownToHtml(handleThinking(msg)) + "</div></div>";
+        log.info("CALL TO FORMAT_MESSAGE");
+        return "<div id=\"messages\" hx-swap-oob=\"beforeend\"><div><i>" + msg.getCreated().format(DateTimeFormatter.ofPattern("HH:mm:ss ")) + "</i> <b>" + msg.getCreatedBy() + "</b>: " + handleThinking(msg) + "</div></div>";
     }
 
     public void addChatMessage(Chat chat, Flux<ChatResponse> response) {
@@ -123,32 +98,116 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
     }
 
     private String formatNewAssistantMessage(Message msg) {
-        return "<div id=\"messages\" hx-swap-oob=\"beforeend\"><div><i>" + msg.getCreated().format(DateTimeFormatter.ofPattern("HH:mm:ss ")) + "</i> <b>" + msg.getCreatedBy() + "</b>: <span id=\"msg-" + msg.getId() + "\">Loading...</span></div></div>";
+        log.info("CALL TO FORMAT_NEW_ASSISTANT_MESSAGE");
+        StringBuffer sb = new StringBuffer();
+        sb.append("<div id=\"messages\" hx-swap-oob=\"beforeend\"><div><i>" + msg.getCreated().format(DateTimeFormatter.ofPattern("HH:mm:ss ")) + "</i> <b>" + msg.getCreatedBy() + "</b>:");
+        sb.append("  <div class=\"accordion\">");
+        sb.append("    <div class=\"accordion-item\">");
+        sb.append("      <h2 class=\"accordion-header\" id=\"think-header-" + msg.getId() + "\">");
+        sb.append("        <button class=\"accordion-button collapsed\" type=\"button\" data-bs-toggle=\"collapse\" data-bs-target=\"#think-body-" + msg.getId() + "\" aria-expanded=\"true\" aria-controls=\"think-body-" + msg.getId() + "\">Thoughts</button>");
+        sb.append("      </h2>");
+        sb.append("      <div id=\"think-body-" + msg.getId() + "\" class=\"accordion-collapse collapse\" aria-labelledby=\"think-header-" + msg.getId() + "\"><div class=\"accordion-body\">");
+        sb.append("        <span id=\"msg-think-" + msg.getId() + "\"></span>");
+        sb.append("      </div></div>");
+        sb.append("    </div>");
+        sb.append("    <div class=\"accordion-item\">");
+        sb.append("      <h2 class=\"accordion-header\" id=\"answer-header-" + msg.getId() + "\">");
+        sb.append("        <button class=\"accordion-button\" type=\"button\" data-bs-toggle=\"collapse\" data-bs-target=\"#answer-body-" + msg.getId() + "\" aria-expanded=\"true\" aria-controls=\"answer-body-" + msg.getId() + "\">Answer</button>");
+        sb.append("      </h2>");
+        sb.append("      <div id=\"answer-body-" + msg.getId() + "\" class=\"accordion-collapse collapse show\" aria-labelledby=\"answer-header-" + msg.getId() + "\"><div class=\"accordion-body\">");
+        sb.append("        <span id=\"msg-answer-" + msg.getId() + "\"></span>");
+        sb.append("      </div></div>");
+        sb.append("    </div>");
+        sb.append("  </div>");
+        sb.append("</div></div>");
+
+        return sb.toString();
+
     }
 
     private String formatInProgressMessage(Message gp) {
-        return String.format("<span id=\"msg-%s\">%s</span>", gp.getId(), markdownToHtml(handleThinking(gp)));
+        String text = gp.getText();
+        if (text.contains("<think>")) {
+            if (text.contains("</think>")) {
+                String answerPart = StringUtils.substringAfterLast(text, "</think>").trim();
+                return String.format("<span id=\"msg-answer-%s\">%s</span>", gp.getId(), markdownToHtml(answerPart));
+            } else {
+                String thinkPart = StringUtils.substringAfter(text, "<think>");
+                return String.format("<span id=\"msg-think-%s\">%s</span>", gp.getId(), markdownToHtml(thinkPart));
+            }
+        }
+        return String.format("<span id=\"msg-answer-%s\">%s</span>", gp.getId(), markdownToHtml(text));
     }
 
-    private static String handleThinking(Message gp) {
-        String text = gp.getText();
-        if (text.contains("<thinking>")) {
-            if (text.contains("</thinking>")) {
-                String[] split = text.split("</thinking>");
-                if (split.length > 1) {
-                    return split[1].trim();
-                } else {
-                    return "";
-                }
-            } else {
-                return "Thinking...";
+    private static String handleThinking(Message msg) {
+
+        if (msg.getCreatedBy().equals("assistant")) {
+
+            StringBuffer sb = new StringBuffer();
+            sb.append("  <div class=\"accordion\">");
+            sb.append("    <div class=\"accordion-item\">");
+            sb.append("      <h2 class=\"accordion-header\" id=\"think-header-" + msg.getId() + "\">");
+            sb.append("        <button class=\"accordion-button collapsed\" type=\"button\" data-bs-toggle=\"collapse\" data-bs-target=\"#think-body-" + msg.getId() + "\" aria-expanded=\"true\" aria-controls=\"think-body-" + msg.getId() + "\">Thoughts</button>");
+            sb.append("      </h2>");
+            sb.append("      <div id=\"think-body-" + msg.getId() + "\" class=\"accordion-collapse collapse\" aria-labelledby=\"think-header-" + msg.getId() + "\"><div class=\"accordion-body\">");
+            sb.append("        " + markdownToHtml(getThinkingPart(msg.getText())));
+            sb.append("      </div></div>");
+            sb.append("    </div>");
+            sb.append("    <div class=\"accordion-item\">");
+            sb.append("      <h2 class=\"accordion-header\" id=\"answer-header-" + msg.getId() + "\">");
+            sb.append("        <button class=\"accordion-button\" type=\"button\" data-bs-toggle=\"collapse\" data-bs-target=\"#answer-body-" + msg.getId() + "\" aria-expanded=\"true\" aria-controls=\"answer-body-" + msg.getId() + "\">Answer</button>");
+            sb.append("      </h2>");
+            sb.append("      <div id=\"answer-body-" + msg.getId() + "\" class=\"accordion-collapse collapse show\" aria-labelledby=\"answer-header-" + msg.getId() + "\"><div class=\"accordion-body\">");
+            sb.append("        " + markdownToHtml(getAnswerPart(msg.getText())));
+            sb.append("      </div></div>");
+            sb.append("    </div>");
+            sb.append("  </div>");
+
+            return sb.toString();
+        } else {
+            return markdownToHtml(msg.getText());
+        }
+    }
+
+    private static String getAnswerPart(String text) {
+        if (text.contains("<think>")) {
+            String answerPart = "";
+            if (text.contains("</think>")) {
+                answerPart = StringUtils.substringAfterLast(text, "</think>").trim();
             }
+            return answerPart;
         }
         return text;
     }
 
+    private static String getThinkingPart(String text) {
+        if (text.contains("<think>")) {
+            String thinkPart = StringUtils.substringAfter(text, "<think>");
+            if (text.contains("</think>")) {
+                thinkPart = StringUtils.substringBeforeLast(StringUtils.substringAfter(text, "<think>"), "</think>");
+            }
+            return thinkPart;
+        }
+        return "";
+    }
+
+//    private String getResponse(String chatId) {
+//        return responses.get(chatId).getFullResponse();
+//    }
+
     private void finishMessage(Chat chat) {
-        //TODO handle closing of chats/switching to another chat.
+//        log.info("Closing connection for chat {}", chat.getId());
+//        ChatResponse gp = responses.get(chat.getId());
+//        responses.remove(chat.getId());
+//        liveChats.remove(chat.getId());
+//        sessions.get(chat.getId()).forEach(session -> {
+//            try {
+//                session.close();
+//            } catch (IOException e) {
+//                log.warn("Error closing session: {}", session, e);
+//            }
+//        });
+//        sessions.remove(chat.getId());
     }
 
 
@@ -167,6 +226,27 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
             log.warn("Error sending message to session: {}", session, e);
         }
     }
+
+//    private String buildProgressHtml(Message query, ChatResponse gp) {
+////        if (gp.isError()) {
+////            return String.format("<div id=\"qr-%s\" class=\"alert alert-danger d-flex align-items-center\" role=\"alert\"><i role=\"img\" class=\"bi bi-exclamation-circle-fill flex-shrink-0 me-2\"></i><div>%s</div></div>", query.getId(), gp.getErrorMessage());
+////        }
+//        if (StringUtils.isBlank(gp.getFullResponse())) {
+//            return String.format("<div id=\"message-%s\" class=\"spinner-border spinner-border-sm\" role=\"status\"><span class=\"visually-hidden\">Loading...</span></div>", query.getId());
+//        }
+//        if (gp.isDone()) {
+//            return String.format("<span id=\"qr-%s\">%s</span><li id=\"query-status-%s\" class=\"list-group-item\">Generated %d tokens in %.2f seconds. (%s tokens/second)</li>",
+//                    query.getId(),
+//                    MarkdownUtils.markdownToHtml(gp.getFullResponse()),
+//                    query.getId(),
+//                    gp.getResponseTokens(),
+//                    gp.getResponseSeconds(),
+//                    gp.getHumanReadableTokensPerSecond()
+//
+//            );
+//        }
+//        return String.format("<span id=\"qr-%s\">%s</span>", query.getId(), MarkdownUtils.markdownToHtml(gp.getFullResponse()));
+//    }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
