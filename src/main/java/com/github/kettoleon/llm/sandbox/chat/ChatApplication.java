@@ -57,7 +57,7 @@ public class ChatApplication {
                             .doOnEach(cr -> System.out.print(Optional.ofNullable(cr.get())
                                     .map(ChatResponse::getResult)
                                     .map(Generation::getOutput)
-                                    .map(AssistantMessage::getContent)
+                                    .map(AssistantMessage::getText)
                                     .orElse("")))
                             .blockLast();
                 }

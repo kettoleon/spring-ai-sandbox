@@ -99,7 +99,7 @@ public class CortexWebSocketHandler implements WebSocketHandler {
                     responses.put("", gp);
                     String text = Optional.ofNullable(gp.getResult())
                             .map(Generation::getOutput)
-                            .map(AssistantMessage::getContent).orElse("");
+                            .map(AssistantMessage::getText).orElse("");
                     currentMessage.setText(Optional.ofNullable(currentMessage.getText()).orElse("") + text);
                     broadcastRawMessage(formatInProgressMessage(currentMessage));
 

@@ -30,7 +30,7 @@ public class DatabaseChatMemory implements ChatMemory {
         for (Message message : messages) {
             messageRepository.save(com.github.kettoleon.llm.sandbox.chat.repo.Message.builder()
                     .createdBy(getCreatedBy(message))
-                    .text(message.getContent())
+                    .text(message.getText())
                     .chat(chat)
                     .created(ZonedDateTime.now())
                     .build());
