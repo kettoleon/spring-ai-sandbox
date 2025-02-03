@@ -290,3 +290,20 @@ With this example we can see how the chain of thought works, by self-evaluating 
     <td>Run the main application and head to <a href="http://localhost:8080">http://localhost:8080</a></td>
   </tr>
 </table>
+
+### ByteCoda
+
+<table>
+  <tr>
+    <th>Description</th>
+    <td>With Deepseek-r1 14B, I thought we could build a system that processes a java code base and vectorises it to answer questions with RAG</td>
+  </tr>
+  <tr>
+    <th>Status</th>
+    <td>The TPOC is complete but the results are not satisfactory. The model may have been provided with sufficient context to answer the questions, but hallucinates the rest or reaches the maximum context length.</td>
+  </tr>
+  <tr>
+    <th>Running Instructions</th>
+    <td>For running the application, you will need to set up a postgresql pgvector server and tweak the properties to point to it. Once you have that, run the main application, wait until the vector store is rebuilt, and ask questions in the console (stdin).</td>
+  </tr>
+</table>
