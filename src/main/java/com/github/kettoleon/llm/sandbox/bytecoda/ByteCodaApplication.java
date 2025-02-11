@@ -2,6 +2,7 @@ package com.github.kettoleon.llm.sandbox.bytecoda;
 
 import com.github.kettoleon.llm.sandbox.bytecoda.repo.*;
 import com.github.kettoleon.llm.sandbox.common.configuration.*;
+import com.github.kettoleon.llm.sandbox.common.prompt.PromptTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
@@ -10,7 +11,6 @@ import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
-import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -51,7 +51,7 @@ import static org.apache.commons.lang3.StringUtils.*;
 @Slf4j
 public class ByteCodaApplication {
 
-    private ChatClient chatClientForAnalysis;
+    private PromptTemplate promptTemplateForAnalysis;
     private VectorStore vectorStore;
 
     public static void main(String[] args) {
@@ -64,7 +64,7 @@ public class ByteCodaApplication {
             GlobalTemplateVariables.setProjectTitle("ByteCoda");
 
             vectorStore = vectorStore(embeddingModel);
-            chatClientForAnalysis = builder.build();
+            promptTemplateForAnalysis = new PromptTemplate(builder.build());
 
             String projectId = "spring-ai-sandbox";
 
@@ -287,10 +287,11 @@ public class ByteCodaApplication {
     private String analyseClass(JavaClass jc) {
         Optional<FunctionalityAnswer> answer = Optional.empty();
         while (answer.isEmpty()) {
-            answer = promptToBean(chatClientForAnalysis,
+            answer = promptTemplateForAnalysis.promptToBean(
                     "You are a system that analyses java classes to explain their functionality. Keep answers/explanations concise/short to a single line of text.",
                     buildUserPromptForClassAnalysis(jc, javaMethodRepository.findAllByJavaClass(jc)),
-                    FunctionalityAnswer.class
+                    FunctionalityAnswer.class,
+                    ByteCodaApplication::lastResortAnswerParser
             );
         }
         return answer.get().functionality;
@@ -299,13 +300,25 @@ public class ByteCodaApplication {
     private String analyseMethod(JavaMethod jm) {
         Optional<FunctionalityAnswer> answer = Optional.empty();
         while (answer.isEmpty()) {
-            answer = promptToBean(chatClientForAnalysis,
+            answer = promptTemplateForAnalysis.promptToBean(
                     "You are a system that analyses java methods to explain their functionality. Keep answers/explanations concise/short to a single line of text.",
                     buildUserPromptForMethodAnalysis(jm.getJavaClass().getQualifiedName(), javaMethodRepository.findAllByJavaClass(jm.getJavaClass()), jm),
-                    FunctionalityAnswer.class
-            );
+                    FunctionalityAnswer.class,
+                    ByteCodaApplication::lastResortAnswerParser
+                    );
         }
         return answer.get().functionality;
+    }
+
+    private static FunctionalityAnswer lastResortAnswerParser(String s) {
+        if (s.contains("**Answer:**")) {
+            s = substringAfterLast(s, "**Answer:**");
+        }
+        s = s.trim();
+        if (s.split("\\r?\\n").length == 1) {
+            return new FunctionalityAnswer(s);
+        }
+        return null;
     }
 
     private void checkForProjectChangesAndUpdateDatabase(Project project, List<Path> javaFiles) {
@@ -513,92 +526,6 @@ public class ByteCodaApplication {
         }
         return methodId.trim();
     }
-
-    private static final boolean verbose = false;
-
-    private String prompt(ChatClient chatClient, String system, String user) {
-        StringBuffer sb = new StringBuffer();
-        if (verbose) {
-            System.out.println(">>> " + user);
-        }
-        ChatClient.ChatClientRequestSpec chatcc = chatClient.
-                prompt()
-                .advisors()
-                .user(user);
-
-        if (system != null) {
-            chatcc = chatcc.system(system);
-        }
-
-        chatcc
-                .stream().chatResponse()
-                .doOnEach(cr -> {
-                    String append = Optional.ofNullable(cr.get())
-                            .map(ChatResponse::getResult)
-                            .map(Generation::getOutput)
-                            .map(AssistantMessage::getText)
-                            .orElse("");
-                    sb.append(append);
-                    if (verbose) {
-                        System.out.print(append);
-                    }
-                })
-                .blockLast();
-        if (verbose) {
-            System.out.println();
-        }
-        return sb.toString();
-    }
-
-    private <T> Optional<T> promptToBean(ChatClient chatClient, String system, String user, Class<T> out) {
-        BeanOutputConverter<T> boc = new BeanOutputConverter<>(out);
-        String completeSystem = system + "\n\n" + boc.getFormat();
-        if (verbose) {
-            System.out.println("$$> " + completeSystem);
-        }
-        String result = prompt(chatClient, completeSystem, user);
-        String answer = substringAfterLast(result, "</think>");
-        if (answer.contains("```json")) {
-            answer = substringBeforeLast(substringAfter(answer, "```json"), "```").trim();
-        }
-        if (answer.trim().startsWith("{")) {
-            try {
-                T convert = boc.convert(answer);
-                return Optional.of(convert);
-            } catch (RuntimeException e) {
-                if (verbose) {
-                    System.err.println("Failed to parse LLM answer, asking again for correct format...");
-                }
-                result = prompt(chatClient, buildRetrySystem(boc.getFormat()), answer);
-                answer = substringAfterLast(result, "</think>");
-                if (answer.contains("```json")) {
-                    answer = substringBeforeLast(substringAfter(answer, "```json"), "```").trim();
-                }
-                try {
-                    return Optional.of(boc.convert(answer));
-                } catch (RuntimeException e2) {
-                    e2.printStackTrace();
-                }
-                return Optional.empty();
-            }
-        } else if (out.isAssignableFrom(FunctionalityAnswer.class)) {
-            if (answer.contains("**Answer:**")) {
-                answer = substringAfterLast(answer, "**Answer:**");
-            }
-            answer = answer.trim();
-            if (answer.split("\\r?\\n").length == 1) {
-                return (Optional<T>) Optional.of(new FunctionalityAnswer(answer));
-            }
-        }
-        return Optional.empty();
-    }
-
-    private String buildRetrySystem(String format) {
-        return """
-                You just failed to return an answer with the proper format, please analise the following answer (without the thinking steps) and format it correctly.\n\n
-                """ + format;
-    }
-
 
     public VectorStore vectorStore(EmbeddingModel embeddingModel) {
         return PgVectorStore.builder(pgJdbcTemplate(), embeddingModel)
