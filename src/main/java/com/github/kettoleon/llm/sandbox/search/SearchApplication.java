@@ -4,6 +4,12 @@ import com.github.kettoleon.llm.sandbox.common.configuration.*;
 import com.github.kettoleon.llm.sandbox.common.prompt.PromptTemplate;
 import com.github.kettoleon.llm.sandbox.search.brave.BraveClient;
 import com.github.kettoleon.llm.sandbox.search.brave.WebSearchResponse;
+import com.microsoft.playwright.BrowserContext;
+import com.microsoft.playwright.BrowserType;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.options.LoadState;
+import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
@@ -14,13 +20,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 
-import javax.swing.text.html.Option;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -70,9 +77,11 @@ public class SearchApplication {
                                     Keep the list of queries to a minimum, if possible to a single one, only use multiple queries if the question is complex enough to require multiple topics of research.
                                     Always assume the user typed the query correctly, the user query is never misspelled.
                                     Never try to correct the user query, always assume it is correct and go with it.
+                                    You can also provide a list of direct web urls to visit if you can come up with them without the need for search.
                                     """,
                             """
                                     Provide a list of web search engine queries that we will perform in order to collect data to answer the user query.
+                                    You can additionally provide urls that can be visited directly without the need for search.
                                     Assume the user query is correct, has not been mispelled, and use it as it is.
                                     User query:
                                                                         
@@ -101,7 +110,10 @@ public class SearchApplication {
                         sb.append(user);
                         sb.append("\n\n");
                         sb.append("# Web search results\n\n");
-                        webSearchQueries.get().queries().forEach(q -> {
+                        Optional.ofNullable(webSearchQueries.get().directWebUrls()).orElse(Collections.emptyList()).forEach(url -> {
+                            sb.append("- [" + url + "](" + url + ")");
+                        });
+                        Optional.ofNullable(webSearchQueries.get().queries()).orElse(Collections.emptyList()).forEach(q -> {
                             WebSearchResponse response = braveClient.search(q);
                             response.getWeb().getResults().forEach(searchResult -> {
                                 sb.append("- [" + searchResult.getTitle() + "](" + searchResult.getUrl() + "): " + searchResult.getDescription() + "\n");
@@ -143,7 +155,7 @@ public class SearchApplication {
                         );
 
                         if (wsr.isPresent()) {
-                            if (wsr.get().canAnswerAlready()) {
+                            if (wsr.get().canAnswerAlready() && (wsr.get().urlsToScrape() == null || wsr.get().urlsToScrape().isEmpty())) {
 
                                 chatClient.
                                         prompt()
@@ -163,9 +175,100 @@ public class SearchApplication {
 
                             } else {
 
-                                System.out.println("//TODO scrape the following urls: ");
-                                wsr.get().urlsToScrape.forEach(url -> System.out.println("  - " + url));
+                                List<String> scrapedInfo = new ArrayList<>();
+                                List<String> urlsToScrape = Optional.ofNullable(wsr.get().urlsToScrape).orElse(Collections.emptyList());
+                                if (!urlsToScrape.isEmpty()) {
+                                    System.out.println("//TODO scrape the following urls: ");
 
+                                    BrowserContext context = Playwright.create().firefox()
+                                            .launchPersistentContext(Path.of("./firefox-context"), new BrowserType.LaunchPersistentContextOptions()
+                                                    .setArgs(List.of("--start-maximized"))
+                                                    .setHeadless(false)
+                                                    .setSlowMo(50)
+                                                    .setViewportSize(1900, 1000)
+                                            );
+                                    urlsToScrape.forEach(url -> {
+                                        System.out.println("  - " + url);
+
+                                        Page page = context.newPage();
+                                        page.navigate(url);
+                                        page.waitForLoadState(LoadState.NETWORKIDLE);
+                                        String markdown = FlexmarkHtmlConverter.builder().build().convert(page.innerHTML("body"));
+
+                                        StringBuffer sb2 = new StringBuffer();
+                                        sb2.append("\n\n# User query\n");
+                                        sb2.append("Following is the query the user made:\n\n");
+                                        sb2.append(user);
+                                        sb2.append("\n\n");
+                                        sb2.append("\n\n# Web page visited\n");
+                                        sb2.append("- " + url);
+                                        sb2.append("\n\n# Web page contents\n");
+                                        sb2.append(markdown);
+                                        sb2.append("\n\n# Current task\n");
+                                        sb2.append("With the information provided above, extract the information from the page contents that is useful towards answering the user query.\n");
+                                        sb2.append("If not enough information is collected, or the information is incomplete, you can also provide a list of links to follow to analyse them.\n");
+
+                                        Optional<WebScrapingResult> webScrapingResult = searchPromptTemplate.promptToBean(
+                                                """
+                                                        You are navigating the web to find enough information to answer the user query.
+                                                        Extract the useful snippets of information from the page, and decide if there are any links worth visiting to continue our research.
+                                                        Focus on retrieving information related to the user's query, disregard unrelated information and avoid going into rabbit holes.
+                                                        When providing the link or button names to click, give the name of the link, not the url. E.g: [Link name](url) -> Link name.
+                                                        """,
+                                                sb2.toString(),
+                                                WebScrapingResult.class,
+                                                unformatted -> {
+                                                    return searchPromptTemplate.promptToBean(
+                                                            """
+                                                                    You provided a previous response in the wrong format. Please respond with the specified json format.
+                                                                    """,
+                                                            """
+                                                                    Here is the answer you gave without the proper format, please use it to return the answer in json format:
+                                                                                                                        
+                                                                                                                        
+                                                                    """ + unformatted,
+                                                            WebScrapingResult.class
+                                                    ).orElse(null);
+                                                }
+                                        );
+
+                                        if (webScrapingResult.isPresent()) {
+                                            scrapedInfo.addAll(Optional.ofNullable(webScrapingResult.get().usefulInformation()).orElse(Collections.emptyList()));
+
+                                            System.out.println("===== Info learned from page ======");
+                                            Optional.ofNullable(webScrapingResult.get().usefulInformation()).orElse(Collections.emptyList()).forEach(s -> System.out.println("- " + s));
+
+                                            System.out.println("===== Next pages to navigate to [TODO] ======");
+                                            Optional.ofNullable(webScrapingResult.get().linkOrButtonNamesToClick()).orElse(Collections.emptyList()).forEach(s -> System.out.println("- " + s));
+                                        }
+                                        page.close();
+                                    });
+                                    context.close();
+                                }
+
+                                StringBuffer sb3 = new StringBuffer();
+                                sb3.append("\n\n# User query\n");
+                                sb3.append("Following is the query the user made:\n\n");
+                                sb3.append(user);
+                                sb3.append("\n\n");
+                                sb3.append("\n\n# Information extracted from the web\n");
+                                scrapedInfo.forEach(s -> sb3.append("- " + s + "\n"));
+
+                                chatClient.
+                                        prompt()
+                                        .advisors()
+                                        .system("""
+                                                            You are a system that answers the user query provided, with the help of snippets of information retrieved through web search results.
+                                                            You have, in a previous step, already deemed you have enough information in the web search results to answer the user query.
+                                                            """)
+                                        .user(sb3.toString())
+                                        .stream().chatResponse()
+                                        .doOnEach(cr -> System.out.print(Optional.ofNullable(cr.get())
+                                                .map(ChatResponse::getResult)
+                                                .map(Generation::getOutput)
+                                                .map(AssistantMessage::getText)
+                                                .orElse("")))
+                                        .blockLast();
 
                             }
 
@@ -180,7 +283,11 @@ public class SearchApplication {
         };
     }
 
-    record WebSearchQueries(List<String> queries) {
+    record WebScrapingResult(List<String> usefulInformation, List<String> linkOrButtonNamesToClick) {
+
+    }
+
+    record WebSearchQueries(List<String> queries, List<String> directWebUrls) {
     }
 
     record WebScrapingRequest(boolean canAnswerAlready, List<String> urlsToScrape) {
