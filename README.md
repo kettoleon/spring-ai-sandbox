@@ -1,6 +1,60 @@
 # Spring AI Sandbox
-This project is a sandbox to create different proof of concept implementations about ideas
-or things I want to try with large language models.
+This project is a sandbox to create different proof of concept implementations about ideas or things I want to try with 
+large language models.
+
+## Roadmap
+
+The idea is to build separate proof of concepts and use cases, and slowly consolidate some common tooling around it.
+
+Also, I would like to make progressively more advanced proof of concepts up to reaching the point of having a swarm of
+specialised AI agents (goal of my hive4j project, but I started that before spring-ai existed).
+
+I've got to a point where I have realised the use cases and proof of concepts I'm making just won't work with the local
+models I can run with ollama in my hardware. So I can wait for optimisations, or start paying openai and/or deepseek
+apis.
+
+### Phase 1: My chat
+
+I want to create a reusable UI that replicates the typical AI chat assistant user experience. For that I can still make
+use of free local models. However, I would like to keep an option to switch between the best local reasoner model I can
+run, and the 3rd party API models (deepseek/openai). There might be queries I want to keep for myself, and queries I
+don't mind other services taking note.
+
+### Phase 2: Web search and scraping
+
+For that one I have realised local models are not good enough (as of early 2025 yet). So I need to start using APIs.
+Maybe some of the simpler tasks can be done locally by smaller models, and then only use openai when is needed.
+I need to build the tooling in a way that depending on the use case, it uses live openai APIs, or asynchronous batch.
+
+### Phase 3: Agents
+
+For my agents memory I plan to use local pgvector, I need to make the tooling flexible so that they run live when
+being asked from a chat, and run in async batch mode when instanciated under a swarm.
+
+### Deepseek vs. OpenAI vs. Local
+
+Both companies are bad options in the sense that they keep and use your data for training. Best case scenario good 
+enough models get small enough to run locally or affordable enough to run in leased GPU clusters per hour.
+
+But for now, and as I'm still developing the proof of concept, I'll be using their APIs.
+
+Here are the pros and cons for Deepseek and OpenAI:
+
+Deepseek:
+- Pro: Has no rate limit, just responses taking longer to answer.
+- Pro: comparable to openai's o1, while cheaper.
+- Con: Context limit might be too small for my use cases.
+
+OpenAI:
+- Pro: Longer context length (200k)
+- Pro: o3-mini is slightly better than r1
+- Pro: async batch mode could be a nice way to run the swarm in the future with no rate limits
+- Pro: Has multi-modal models (I guess good for web scraping?)
+- Pro: Tools support
+- Con: 10x more expensive than deepseek
+
+I think I can start with deepseek and then eventually move to OpenAI when I see a better model, vision, or batching is
+needed?
 
 ## Setup
 In order to run the examples, you will need ollama installed locally with a model downloaded,
@@ -12,15 +66,15 @@ about how to do that in the [Chat Models](https://docs.spring.io/spring-ai/refer
 
 Once you have this setup done, you can proceed to run the different examples.
 
-## Examples
+# Proof of concepts / use cases
 
-### Chat
+## Chat
 
-#### Description
+### Description
 
 It aims to be a barebones local replacement of ChatGPT.
 
-#### Status
+### Status
 
 Basic functionality is there, and it is usable, but it still needs some polish.
 
@@ -35,34 +89,34 @@ The output is formatted as markdown and the code is highlighted.
 
 _(Sadly, llama 3.1 still does not know how to use spring-ai)_
 
-#### Running Instructions
+### Running Instructions
 
 Run the main application and head to [http://localhost:8080](http://localhost:8080).
 
-### Helgar
+## Helgar
 
-#### Description
+### Description
 
 My third attempt to replicate the famous [Generative Agents: Interactive Simulacra of Human Behavior](https://arxiv.org/pdf/2304.03442) paper. 
 
 First time trying to do it with LLM function calling. This time I decided to start small with a single NPC character, Helgar, a hunter in the woods.
 
-#### Status
+### Status
 
 Looks promising, but the function calling with llama 3.2 is still unreliable, so I parked it for now.
 Also, DeepSeek-r1 does not have function calling, so still parked.
 
-#### Running Instructions
+### Running Instructions
 
 Run the main application and observe what Helgar decides to do after waking up.
 
-### Live Translate
+## Live Translate
 
-#### Description
+### Description
 
 I wondered if an LLM could be used to translate the chat of an international online video game.
 
-#### Status
+### Status
 
 Done. The proof of concept worked fine, If I want to continue I should start the proper project on its own repo.
 
@@ -86,17 +140,17 @@ Example output:
 ]
 ```
 
-#### Running Instructions
+### Running Instructions
 
 Run the main application and observe the console output.
 
-### Mira
+## Mira
 
-#### Description
+### Description
 
 Magic Inglish Real Academy. An attempt at making a translator from spanish/english to our own flavour of spanglish: "Magic English".
 
-#### Status
+### Status
 
 Looks like LLMs (or at least the biggest models I have been able to run locally - llama 3.2 8B q8 / deepseek-r1:14b) are not good enough yet to get an idea of what Magic English is and make satisfactory translations.
 
@@ -113,17 +167,17 @@ Result: Anonche my abuelita started to flamencobate in the kichen whil my dog wa
 
 As we can see, the model I'm able to run is not doing a very good job.
 
-#### Running Instructions
+### Running Instructions
 
 Run the main application and observe the console output.
 
-### Mixtenser
+## Mixtenser
 
-#### Description
+### Description
 
 I once had a colleague who was very good at mixing sayings together and making up new ones. So I wanted to try see if LLMs can do the same.
 
-#### Status
+### Status
 
 Done. Seems like LLMs are amazing at doing that. In the example I even tried a chain of thought to make the LLM generate a few variations and self-evaluate to select the best.
 
@@ -256,51 +310,53 @@ Result: Biting off more sushi rolls than you can roll back up will leave you fee
 
 With this example we can see how the chain of thought works, by self-evaluating ten variations and choosing the best.
 
-#### Running Instructions
+### Running Instructions
 
 Run the main application and observe the console output until it gives you a new saying.
 
-### Pathfinder
+## Pathfinder
 
-#### Description
+### Description
 
 After reading the books of the Bobiverse series, I was inspired to make a narrative web game where the LLM would serve as a "game master", and the player could chat to trigger actions and drive its own story.
 
-#### Status
+### Status
 
 After doing the first chapter and testing it a few times, I realised that despite the concept seems cool, it also gets old and boring really quickly. Need to rethink, maybe adding other aspects or using a different setting might help to keep it interesting.
 
-#### Running Instructions
+### Running Instructions
 
 Run the main application and head to [http://localhost:8080](http://localhost:8080).
 
-### ByteCoda
+## ByteCoda
 
-#### Description
+### Description
 
 With Deepseek-r1 14B, I thought we could build a system that processes a java code base and vectorises it to answer questions with RAG.
 
-#### Status
+### Status
 
 The TPOC is complete but the results are not satisfactory. The model may have been provided with sufficient context to answer the questions, but hallucinates the rest or reaches the maximum context length.
 
-#### Running Instructions
+### Running Instructions
 
 For running the application, you will need to set up a postgresql pgvector server and tweak the properties to point to it. Once you have that, run the main application, wait until the vector store is rebuilt, and ask questions in the console (stdin).
 
-### Web Search
+## Web Search
 
-#### Description
+### Description
 
 With Deepseek-r1 14B, I dared to develop a proof of concept for web search. The idea is to perform web search and scraping to provide the LLM with the context to answer correctly.
 
-#### Status
+### Status
 
 So far, results are mixed. It works well when the model can answer your question from the description of the web pages in the search results. Example: `What are camagrocs?`. 
 
 However, it will go off the rails if it has to try to navigate a web page to gather more specific data. Example: `give me a list of user kettoleon's projects on github`.
 
-#### Running Instructions
+On the other hand, I tried copy-pasting the requests to [deepseek chat](https://chat.deepseek.com), and looks like if I paid the API or ran the full model on a cluster, results would be good.
+
+### Running Instructions
 
 For running the application, you will first need to provide an environment property `brave.token` in `application.properties` with the token from [brave search api](https://brave.com/search/api/).
 After that, run the `SearchApplication.java` class and once the spring context is loaded, use stdin to ask a question.
