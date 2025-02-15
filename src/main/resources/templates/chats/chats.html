@@ -15,40 +15,35 @@
     <div id="chat-side" class="col-lg-8" >
         <th:block th:if="${chat != null}" th:insert="~{chats/chat}"></th:block>
         <th:block th:if="${chat == null}">
-
-            <button class="btn btn-secondary btn-sm d-flex align-items-center justify-content-between rounded-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseContent" aria-expanded="false" aria-controls="collapseContent">
-                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
-<!--                <i class="bi bi-lightbulb" style="padding: 0em .5em 0em 0em;"></i>-->
-                <span class="ms-auto me-2" style="padding-left: .5em;">Thinking...</span>
-                <i class="bi bi-chevron-up"></i>
-            </button>
-            <div class="collapse show mt-2 border-start border-5 text-secondary fs-6" style="padding-left: 1em; margin-bottom: .7em;" id="collapseContent">
-                This is the collapsible content that appears when the button is toggled.
-            </div>
-            <div>
-                This is the answer text.
-            </div>
-<!--            <div class="spinner-border text-secondary" role="status" style="margin-top: 1em">-->
-<!--                <span class="visually-hidden">Loading...</span>-->
-<!--            </div>-->
-
-            <script>
-                document.addEventListener('DOMContentLoaded', function () {
-                    var collapseElement = document.getElementById('collapseContent');
-                    var chevronIcon = collapseElement.previousElementSibling.querySelector('.bi-chevron-up');
-
-                    collapseElement.addEventListener('show.bs.collapse', function () {
-                        chevronIcon.classList.remove('bi-chevron-down');
-                        chevronIcon.classList.add('bi-chevron-up');
-                    });
-
-                    collapseElement.addEventListener('hide.bs.collapse', function () {
-                        chevronIcon.classList.remove('bi-chevron-up');
-                        chevronIcon.classList.add('bi-chevron-down');
-                    });
-                });
-            </script>
-
         </th:block>
     </div>
+
+    <script>
+        document.addEventListener("htmx:afterSwap", function(event) {
+          // Check if the swapped element is the chat container (adjust the selector as needed)
+          if (event.target.id === "chat-side") {
+            // Disconnect any existing observer
+            if (window.currentChatObserver) {
+              window.currentChatObserver.disconnect();
+            }
+
+            // Get the new "messages" element
+            const scrollingElement = document.getElementById("messages");
+            if (!scrollingElement) return;
+
+            const config = { childList: true, subtree: true };
+            const callback = function(mutationsList, observer) {
+              for (let mutation of mutationsList) {
+                if (mutation.type === "childList") {
+                  scrollingElement.scrollTop = scrollingElement.scrollHeight;
+                }
+              }
+            };
+
+            // Create and store the new observer
+            window.currentChatObserver = new MutationObserver(callback);
+            window.currentChatObserver.observe(scrollingElement, config);
+          }
+        });
+    </script>
 </div>

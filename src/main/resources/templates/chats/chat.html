@@ -33,6 +33,7 @@
                         </div>
                         <!-- Toggle Buttons -->
                         <button type="button" class="btn btn-outline-primary me-2 rounded-4" data-bs-toggle="button"><i class="bi bi-globe2"></i> Web Search</button>
+                        <button type="button" class="btn btn-outline-primary me-2 rounded-4" data-bs-toggle="button"><i class="bi bi-diagram-3"></i> Use Swarm</button>
                     </div>
                     <!-- Send Button -->
                     <button type="submit" class="btn btn-primary rounded-4 "><i class="bi bi-send-fill"></i></button>
@@ -45,49 +46,48 @@
 
                     // Check if the new content contains the textarea
                     const textarea = newContent.querySelector('#messageTextArea');
-                    if (textarea) {
+                    if (textarea && !textarea.dataset.listenerAttached) {
 
-                        // Auto-expanding textarea
+                        // Mark as listener attached to avoid duplicates
+                        textarea.dataset.listenerAttached = 'true';
+
+                       // Auto-expanding textarea with a maximum of 25 lines
                         textarea.addEventListener('input', function () {
+                            // Reset height to recalculate
                             this.style.height = 'auto';
-                            this.style.height = this.scrollHeight + 'px';
+
+                            // Calculate maximum height based on line-height and desired max lines
+                            const computedStyles = window.getComputedStyle(this);
+                            const lineHeight = parseFloat(computedStyles.lineHeight);
+                            const maxLines = 15;
+                            const maxHeight = lineHeight * maxLines;
+
+                            if (this.scrollHeight > maxHeight) {
+                                this.style.height = maxHeight + 'px';
+                                this.style.overflowY = 'auto';
+                            } else {
+                                this.style.height = this.scrollHeight + 'px';
+                                this.style.overflowY = 'hidden';
+                            }
+                        });
+
+                        // Reset the textarea's height on form submission
+                        const form = textarea.closest('form');
+                        form.addEventListener('submit', function() {
+                            // Reset after submission so that the textarea shrinks back
+                            textarea.style.height = 'auto';
                         });
 
                         // Submit form on Enter key press
                         textarea.addEventListener('keydown', function (event) {
                             if (event.key === 'Enter' && !event.shiftKey) {
-                                event.preventDefault(); // Prevents adding a newline
-                                textarea.closest('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+                                event.preventDefault(); // Prevent newline insertion
+                                form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
                             }
                         });
                     }
                 });
             </script>
-
         </div>
-
-
-        <script>
-            const scrollingElement = document.getElementById("messages");
-
-            const config = { childList: true };
-
-            const callback = function (mutationsList, observer) {
-              //console.log("div updated?");
-              for (let mutation of mutationsList) {
-                if (mutation.type === "childList") {
-                  //window.scrollTo(0, document.body.scrollHeight);
-                  //scrollingElement.scrollIntoView(false);
-                  scrollingElement.scrollTop = scrollingElement.scrollHeight;
-                  //console.log("div scrolled automatically");
-                }
-              }
-            };
-
-            const observer = new MutationObserver(callback);
-            observer.observe(scrollingElement, config);
-            //console.log("scroller setup done");
-
-        </script>
     </div>
 </th:block>
