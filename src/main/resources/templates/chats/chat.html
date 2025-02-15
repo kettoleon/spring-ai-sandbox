@@ -1,42 +1,93 @@
-<div
-        hx-ext="ws"
-        th:data-ws-connect="'/api/v1/chats/' + ${chatId} + '/messages'"
-        hx-swap="beforeend"
-        hx-on="htmx:wsAfterMessage: this.querySelectorAll('pre code').forEach((el) => {hljs.highlightElement(el);});"
->
-    <div id="messages" style="height:600px; overflow:auto;">
-    </div>
+<th:block th:if="${chatId == null}">
+    <div id="chat-side" class="col-lg-8"></div>
+</th:block>
+<th:block th:if="${chatId != null}">
+    <div id="chat-side" class="col-lg-8" th:hx-get="'/api/v1/chats/' + ${chatId}" hx-trigger="chatsUpdated from:body" hx-swap="outerHTML">
+        <div
+                hx-ext="ws"
+                th:data-ws-connect="'/api/v1/chats/' + ${chatId} + '/messages'"
+                hx-swap="beforeend"
+                hx-on="htmx:wsAfterMessage: this.querySelectorAll('pre code').forEach((el) => {hljs.highlightElement(el);});"
+        >
+            <div id="messages" style="height:600px; overflow:auto;">
+            </div>
 
-    <form ws-send hx-on="htmx:wsAfterSend: this.reset();">
-        <div class="input-group mb-3">
-            <!--        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />-->
-            <input name="message" type="text" class="form-control" placeholder="" aria-label="Message"
-                   aria-describedby="button-addon2">
-            <button class="btn btn-outline-secondary" type="button" id="button-addon2">Send</button>
+            <form class="bg-body-secondary rounded-4" style="padding: 0.3em" ws-send hx-on="htmx:wsAfterSend: this.reset();">
+                <!-- Textarea -->
+                <div class="mb-3">
+                    <textarea class="form-control auto-expanding-textarea border-0 bg-body-secondary rounded-4 shadow-none" id="messageTextArea" name="message" rows="1" placeholder="Type your text here..."></textarea>
+                </div>
+                <!-- Buttons -->
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <!-- Dropdown Button -->
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-secondary dropdown-toggle rounded-4" data-bs-toggle="dropdown" aria-expanded="false">
+                                Model
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#">local deepseek-r1:14b</a></li>
+                                <li><a class="dropdown-item" href="#">api deepseek-r1</a></li>
+                                <li><a class="dropdown-item" href="#">api openai-o3</a></li>
+                            </ul>
+                        </div>
+                        <!-- Toggle Buttons -->
+                        <button type="button" class="btn btn-outline-primary me-2 rounded-4" data-bs-toggle="button"><i class="bi bi-globe2"></i> Web Search</button>
+                    </div>
+                    <!-- Send Button -->
+                    <button type="submit" class="btn btn-primary rounded-4 "><i class="bi bi-send-fill"></i></button>
+                </div>
+            </form>
+            <script>
+                document.body.addEventListener('htmx:load', function(event) {
+                    // event.target is the newly added content
+                    const newContent = event.target;
+
+                    // Check if the new content contains the textarea
+                    const textarea = newContent.querySelector('#messageTextArea');
+                    if (textarea) {
+
+                        // Auto-expanding textarea
+                        textarea.addEventListener('input', function () {
+                            this.style.height = 'auto';
+                            this.style.height = this.scrollHeight + 'px';
+                        });
+
+                        // Submit form on Enter key press
+                        textarea.addEventListener('keydown', function (event) {
+                            if (event.key === 'Enter' && !event.shiftKey) {
+                                event.preventDefault(); // Prevents adding a newline
+                                textarea.closest('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+                            }
+                        });
+                    }
+                });
+            </script>
+
         </div>
-    </form>
-</div>
 
 
-<script>
-    const scrollingElement = document.getElementById("messages");
+        <script>
+            const scrollingElement = document.getElementById("messages");
 
-    const config = { childList: true };
+            const config = { childList: true };
 
-    const callback = function (mutationsList, observer) {
-      //console.log("div updated?");
-      for (let mutation of mutationsList) {
-        if (mutation.type === "childList") {
-          //window.scrollTo(0, document.body.scrollHeight);
-          //scrollingElement.scrollIntoView(false);
-          scrollingElement.scrollTop = scrollingElement.scrollHeight;
-          //console.log("div scrolled automatically");
-        }
-      }
-    };
+            const callback = function (mutationsList, observer) {
+              //console.log("div updated?");
+              for (let mutation of mutationsList) {
+                if (mutation.type === "childList") {
+                  //window.scrollTo(0, document.body.scrollHeight);
+                  //scrollingElement.scrollIntoView(false);
+                  scrollingElement.scrollTop = scrollingElement.scrollHeight;
+                  //console.log("div scrolled automatically");
+                }
+              }
+            };
 
-    const observer = new MutationObserver(callback);
-    observer.observe(scrollingElement, config);
-    //console.log("scroller setup done");
+            const observer = new MutationObserver(callback);
+            observer.observe(scrollingElement, config);
+            //console.log("scroller setup done");
 
-</script>
+        </script>
+    </div>
+</th:block>

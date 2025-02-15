@@ -1,5 +1,6 @@
 package com.github.kettoleon.llm.sandbox.chat.repo;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -10,30 +11,33 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.ZonedDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Component
+@RequiredArgsConstructor
 @Slf4j
 public class DatabaseChatMemory implements ChatMemory {
 
-    @Autowired
-    private ChatRepository chatRepository;
+    private final ChatRepository chatRepository;
 
-    @Autowired
-    private MessageRepository messageRepository;
+    private final MessageRepository messageRepository;
 
     @Override
     public void add(String conversationId, List<Message> messages) {
-        Chat chat = chatRepository.findById(conversationId).orElseThrow();
-
-        for (Message message : messages) {
-            messageRepository.save(com.github.kettoleon.llm.sandbox.chat.repo.Message.builder()
-                    .createdBy(getCreatedBy(message))
-                    .text(message.getText())
-                    .chat(chat)
-                    .created(ZonedDateTime.now())
-                    .build());
+        Optional<Chat> chat = chatRepository.findById(conversationId);
+        if(chat.isPresent()) {
+            for (Message message : messages) {
+                messageRepository.save(com.github.kettoleon.llm.sandbox.chat.repo.Message.builder()
+                        .createdBy(getCreatedBy(message))
+                        .text(message.getText())
+                        .chat(chat.get())
+                        .created(ZonedDateTime.now())
+                        .build());
+            }
+        }else{
+            log.warn("Tried to add {} messages to non-existing conversation {}: {}", messages.size(), conversationId, messages.get(0).toString());
         }
 
     }
@@ -51,7 +55,12 @@ public class DatabaseChatMemory implements ChatMemory {
 
     @Override
     public List<Message> get(String conversationId, int lastN) {
-        return mapMessages(messageRepository.findAllByChatOrderByCreated(chatRepository.findById(conversationId).orElseThrow()));
+        Optional<Chat> chat = chatRepository.findById(conversationId);
+        if (chat.isPresent()) {
+            return mapMessages(messageRepository.findAllByChatOrderByCreated(chat.get()));
+        }
+        log.warn("Could not find conversation {} in the database", conversationId);
+        return Collections.emptyList();
     }
 
     private List<Message> mapMessages(List<com.github.kettoleon.llm.sandbox.chat.repo.Message> repoMessages) {

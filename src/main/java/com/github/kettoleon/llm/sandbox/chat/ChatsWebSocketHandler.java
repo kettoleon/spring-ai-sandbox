@@ -17,9 +17,13 @@ import org.springframework.ai.chat.model.Generation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.context.IContext;
+import org.thymeleaf.spring6.SpringTemplateEngine;
 import reactor.core.publisher.Flux;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.text.Format;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -28,6 +32,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static com.github.kettoleon.llm.sandbox.common.util.MarkdownUtils.markdownToHtml;
+import static com.github.kettoleon.llm.sandbox.common.util.MarkdownUtils.markdownToHtmlNullable;
+import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.DEFAULT_CHAT_MEMORY_RESPONSE_SIZE;
 
 @Component
@@ -44,10 +51,11 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
     private ChatClient.Builder builder;
 
     @Autowired
-    private DatabaseChatMemory chatMemory;
+    private SpringTemplateEngine springTemplateEngine;
 
     private Map<String, Chat> liveChats = new HashMap<>();
     private Map<String, ChatClient> chatClients = new HashMap<>();
+    private Map<String, MessageChatMemoryAdvisor> memoryAdvisors = new HashMap<>();
     private Map<String, ChatResponse> responses = new HashMap<>();
     private final Map<String, List<WebSocketSession>> sessions = new ConcurrentHashMap<>();
 
@@ -58,11 +66,25 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
         return chatClients.get(chatId);
     }
 
+    public void remove(String chatId) {
+        liveChats.remove(chatId);
+        chatClients.remove(chatId);
+        memoryAdvisors.remove(chatId);
+        responses.remove(chatId);
+        List<WebSocketSession> ss = sessions.get(chatId);
+        for (WebSocketSession s : ss) {
+            try {
+                s.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        sessions.remove(chatId);
+    }
+
     private ChatClient newChatClient(String chatId) {
-        MessageChatMemoryAdvisor messageChatMemoryAdvisor = new MessageChatMemoryAdvisor(chatMemory, chatId, DEFAULT_CHAT_MEMORY_RESPONSE_SIZE);
-        return builder
-                .defaultAdvisors(messageChatMemoryAdvisor)
-                .build();
+        memoryAdvisors.put(chatId, new MessageChatMemoryAdvisor(new DatabaseChatMemory(chatRepository, messageRepository), chatId, DEFAULT_CHAT_MEMORY_RESPONSE_SIZE));
+        return builder.build();
     }
 
     public void addChatMessage(Message msg) {
@@ -70,8 +92,14 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
         broadcastRawMessage(msg.getChat().getId(), formatMessage(msg));
     }
 
-    private static String formatMessage(Message msg) {
-        log.info("CALL TO FORMAT_MESSAGE");
+
+    private String formatMessage(Message msg) {
+        if (msg.getCreatedBy().equals("assistant")) {
+            return "<div id=\"messages\" hx-swap-oob=\"beforeend\"><div>" + handleThinking(msg) + "</div></div>";
+        } else if (msg.getCreatedBy().equals("user")) {
+            return "<div id=\"messages\" hx-swap-oob=\"beforeend\"><div class=\"d-flex justify-content-end\" style=\"margin: 1em;\"><div class=\"card bg-body-secondary mb-3\"><div class=\"card-body\" style=\"white-space: pre-wrap; word-break: break-word;\">" + msg.getText() + "</div></div></div></div>";
+        }
+
         return "<div id=\"messages\" hx-swap-oob=\"beforeend\"><div><i>" + msg.getCreated().format(DateTimeFormatter.ofPattern("HH:mm:ss ")) + "</i> <b>" + msg.getCreatedBy() + "</b>: " + handleThinking(msg) + "</div></div>";
     }
 
@@ -98,27 +126,19 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
     }
 
     private String formatNewAssistantMessage(Message msg) {
-        log.info("CALL TO FORMAT_NEW_ASSISTANT_MESSAGE");
+
         StringBuffer sb = new StringBuffer();
-        sb.append("<div id=\"messages\" hx-swap-oob=\"beforeend\"><div><i>" + msg.getCreated().format(DateTimeFormatter.ofPattern("HH:mm:ss ")) + "</i> <b>" + msg.getCreatedBy() + "</b>:");
-        sb.append("  <div class=\"accordion\">");
-        sb.append("    <div class=\"accordion-item\">");
-        sb.append("      <h2 class=\"accordion-header\" id=\"think-header-" + msg.getId() + "\">");
-        sb.append("        <button class=\"accordion-button collapsed\" type=\"button\" data-bs-toggle=\"collapse\" data-bs-target=\"#think-body-" + msg.getId() + "\" aria-expanded=\"true\" aria-controls=\"think-body-" + msg.getId() + "\">Thoughts</button>");
-        sb.append("      </h2>");
-        sb.append("      <div id=\"think-body-" + msg.getId() + "\" class=\"accordion-collapse collapse\" aria-labelledby=\"think-header-" + msg.getId() + "\"><div class=\"accordion-body\">");
-        sb.append("        <span id=\"msg-think-" + msg.getId() + "\"></span>");
-        sb.append("      </div></div>");
-        sb.append("    </div>");
-        sb.append("    <div class=\"accordion-item\">");
-        sb.append("      <h2 class=\"accordion-header\" id=\"answer-header-" + msg.getId() + "\">");
-        sb.append("        <button class=\"accordion-button\" type=\"button\" data-bs-toggle=\"collapse\" data-bs-target=\"#answer-body-" + msg.getId() + "\" aria-expanded=\"true\" aria-controls=\"answer-body-" + msg.getId() + "\">Answer</button>");
-        sb.append("      </h2>");
-        sb.append("      <div id=\"answer-body-" + msg.getId() + "\" class=\"accordion-collapse collapse show\" aria-labelledby=\"answer-header-" + msg.getId() + "\"><div class=\"accordion-body\">");
-        sb.append("        <span id=\"msg-answer-" + msg.getId() + "\"></span>");
-        sb.append("      </div></div>");
-        sb.append("    </div>");
-        sb.append("  </div>");
+        sb.append("<div id=\"messages\" hx-swap-oob=\"beforeend\"><div>");
+
+        Context context = new Context();
+        context.setVariable("id", msg.getId());
+        context.setVariable("thinking", null);
+        context.setVariable("answer", null);
+        StringWriter writer = new StringWriter();
+        springTemplateEngine.process("chats/message", context, writer);
+
+        sb.append(writer.toString());
+
         sb.append("</div></div>");
 
         return sb.toString();
@@ -139,31 +159,40 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
         return String.format("<span id=\"msg-answer-%s\">%s</span>", gp.getId(), markdownToHtml(text));
     }
 
-    private static String handleThinking(Message msg) {
+    private String handleThinking(Message msg) {
 
         if (msg.getCreatedBy().equals("assistant")) {
 
-            StringBuffer sb = new StringBuffer();
-            sb.append("  <div class=\"accordion\">");
-            sb.append("    <div class=\"accordion-item\">");
-            sb.append("      <h2 class=\"accordion-header\" id=\"think-header-" + msg.getId() + "\">");
-            sb.append("        <button class=\"accordion-button collapsed\" type=\"button\" data-bs-toggle=\"collapse\" data-bs-target=\"#think-body-" + msg.getId() + "\" aria-expanded=\"true\" aria-controls=\"think-body-" + msg.getId() + "\">Thoughts</button>");
-            sb.append("      </h2>");
-            sb.append("      <div id=\"think-body-" + msg.getId() + "\" class=\"accordion-collapse collapse\" aria-labelledby=\"think-header-" + msg.getId() + "\"><div class=\"accordion-body\">");
-            sb.append("        " + markdownToHtml(getThinkingPart(msg.getText())));
-            sb.append("      </div></div>");
-            sb.append("    </div>");
-            sb.append("    <div class=\"accordion-item\">");
-            sb.append("      <h2 class=\"accordion-header\" id=\"answer-header-" + msg.getId() + "\">");
-            sb.append("        <button class=\"accordion-button\" type=\"button\" data-bs-toggle=\"collapse\" data-bs-target=\"#answer-body-" + msg.getId() + "\" aria-expanded=\"true\" aria-controls=\"answer-body-" + msg.getId() + "\">Answer</button>");
-            sb.append("      </h2>");
-            sb.append("      <div id=\"answer-body-" + msg.getId() + "\" class=\"accordion-collapse collapse show\" aria-labelledby=\"answer-header-" + msg.getId() + "\"><div class=\"accordion-body\">");
-            sb.append("        " + markdownToHtml(getAnswerPart(msg.getText())));
-            sb.append("      </div></div>");
-            sb.append("    </div>");
-            sb.append("  </div>");
+            Context context = new Context();
+            context.setVariable("id", msg.getId());
+            context.setVariable("thinking", markdownToHtmlNullable(getThinkingPart(msg.getText())));
+            context.setVariable("answer", markdownToHtmlNullable(getAnswerPart(msg.getText())));
+            StringWriter writer = new StringWriter();
+            springTemplateEngine.process("chats/message", context, writer);
 
-            return sb.toString();
+            return writer.toString();
+
+//            StringBuffer sb = new StringBuffer();
+//            sb.append("  <div class=\"accordion\">");
+//            sb.append("    <div class=\"accordion-item\">");
+//            sb.append("      <h2 class=\"accordion-header\" id=\"think-header-" + msg.getId() + "\">");
+//            sb.append("        <button class=\"accordion-button collapsed\" type=\"button\" data-bs-toggle=\"collapse\" data-bs-target=\"#think-body-" + msg.getId() + "\" aria-expanded=\"true\" aria-controls=\"think-body-" + msg.getId() + "\">Thoughts</button>");
+//            sb.append("      </h2>");
+//            sb.append("      <div id=\"think-body-" + msg.getId() + "\" class=\"accordion-collapse collapse\" aria-labelledby=\"think-header-" + msg.getId() + "\"><div class=\"accordion-body\">");
+//            sb.append("        " + markdownToHtml(getThinkingPart(msg.getText())));
+//            sb.append("      </div></div>");
+//            sb.append("    </div>");
+//            sb.append("    <div class=\"accordion-item\">");
+//            sb.append("      <h2 class=\"accordion-header\" id=\"answer-header-" + msg.getId() + "\">");
+//            sb.append("        <button class=\"accordion-button\" type=\"button\" data-bs-toggle=\"collapse\" data-bs-target=\"#answer-body-" + msg.getId() + "\" aria-expanded=\"true\" aria-controls=\"answer-body-" + msg.getId() + "\">Answer</button>");
+//            sb.append("      </h2>");
+//            sb.append("      <div id=\"answer-body-" + msg.getId() + "\" class=\"accordion-collapse collapse show\" aria-labelledby=\"answer-header-" + msg.getId() + "\"><div class=\"accordion-body\">");
+//            sb.append("        " + markdownToHtml(getAnswerPart(msg.getText())));
+//            sb.append("      </div></div>");
+//            sb.append("    </div>");
+//            sb.append("  </div>");
+
+//            return sb.toString();
         } else {
             return markdownToHtml(msg.getText());
         }
@@ -171,11 +200,17 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
 
     private static String getAnswerPart(String text) {
         if (text.contains("<think>")) {
-            String answerPart = "";
+            String answerPart = null;
             if (text.contains("</think>")) {
                 answerPart = StringUtils.substringAfterLast(text, "</think>").trim();
             }
+            if(isBlank(answerPart)){
+                return null;
+            }
             return answerPart;
+        }
+        if(isBlank(text)){
+            return null;
         }
         return text;
     }
@@ -186,9 +221,12 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
             if (text.contains("</think>")) {
                 thinkPart = StringUtils.substringBeforeLast(StringUtils.substringAfter(text, "<think>"), "</think>");
             }
+            if(isBlank(thinkPart)){
+                return null;
+            }
             return thinkPart;
         }
-        return "";
+        return null;
     }
 
 //    private String getResponse(String chatId) {
@@ -276,23 +314,26 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
     public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
         String text = new ObjectMapper().readTree(message.getPayload().toString()).get("message").asText();
 
+
         String chatId = getChatId(session);
-        Chat chat = chatRepository.findById(chatId).orElseThrow();
-        Message msg = Message.builder()
-                .chat(chat)
-                .created(ZonedDateTime.now())
-                .text(text)
-                .createdBy("user")
-                .build();
-        addChatMessage(msg);
+        log.info("Received message for chat {}: {}", chatId, text);
+        if(isNotBlank(text)) {
+            Chat chat = chatRepository.findById(chatId).orElseThrow();
+            Message msg = Message.builder()
+                    .chat(chat)
+                    .created(ZonedDateTime.now())
+                    .text(text)
+                    .createdBy("user")
+                    .build();
+            addChatMessage(msg);
 
-        addChatMessage(chat, getChatClient(chatId).
-                prompt()
-                .advisors()
-                .user(text)
-                .stream().chatResponse());
+            addChatMessage(chat, getChatClient(chatId).
+                    prompt()
+                    .advisors(memoryAdvisors.get(chatId))
+                    .user(text)
+                    .stream().chatResponse());
+        }
     }
-
 
     @Getter
     @Setter

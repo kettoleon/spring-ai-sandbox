@@ -1,0 +1,22 @@
+<div id="chat-list" hx-get="/chats/list" hx-trigger="chatsUpdated from:body">
+    <dl  th:each="chatGroup : ${chatGroups}">
+        <dt th:text="${chatGroup.key}" style="margin-bottom: 1em;">Group</dt>
+        <dd th:each="chat : ${chatGroup.value}" th:id="'menu-chat-dd-' + ${chat.id}">
+            <div class="d-flex reveal-container" role="group" aria-label="Basic outlined example">
+                <th:block th:insert="~{chats/chat-list-title-show}"></th:block>
+                <div class="ms-auto d-flex gap-2" style="padding-left: 0.5em">
+                    <button type="button" class="btn btn-outline-warning reveal-on-hover" style="border: none;"
+                            th:hx-get="'/api/v1/chats/' + ${chat.id} + '/edit'"
+                            th:hx-target="'#menu-chat-' + ${chat.id}"
+                            hx-swap="outerHTML"
+                            th:hx-vars="${_csrf.parameterName}+':\''+${_csrf.token}+'\''"
+                    ><i class="bi bi-pencil-square"></i></button>
+                    <button type="button" class="btn btn-outline-danger reveal-on-hover" style="border: none;"
+                            th:hx-delete="'/api/v1/chats/' + ${chat.id}"
+                            th:hx-vars="${_csrf.parameterName}+':\''+${_csrf.token}+'\''"
+                    ><i class="bi bi-trash3"></i></button>
+                </div>
+            </div>
+        </dd>
+    </dl>
+</div>

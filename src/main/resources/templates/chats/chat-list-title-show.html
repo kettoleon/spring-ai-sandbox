@@ -1,0 +1,7 @@
+<button th:id="'menu-chat-' + ${chat.id}" type="button" class="btn btn-outline-secondary flex-grow-1 text-start" th:text="${chat.title}"
+        style="border: none;"
+        th:hx-get="'/api/v1/chats/' + ${chat.id}"
+        hx-target="#chat-side"
+        hx-swap="outerHTML"
+        th:hx-vars="${_csrf.parameterName}+':\''+${_csrf.token}+'\''"
+>Chat name</button>

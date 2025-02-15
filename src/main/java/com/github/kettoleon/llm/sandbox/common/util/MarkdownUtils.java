@@ -34,6 +34,13 @@ public class MarkdownUtils {
             .extensions(EXTENSIONS)
             .build();
 
+    public static String markdownToHtmlNullable(String markdownResult) {
+        if(markdownResult == null){
+            return null;
+        }
+        return markdownToHtml(markdownResult);
+    }
+
     public static String markdownToHtml(String markdownResult) {
         try {
             return RENDERER.render(PARSER.parse(markdownResult));

@@ -21,6 +21,23 @@
             opacity: 0;
             transition: opacity 1s ease-out;
         }
+        div.htmx-swapping dd {
+            opacity: 0;
+            transition: opacity 1s ease-out;
+        }
+        .auto-expanding-textarea {
+            overflow: hidden;
+            resize: none;
+        }
+        .reveal-on-hover {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none; /* Prevent interaction when hidden */
+        }
+        .reveal-container:hover .reveal-on-hover {
+            opacity: 1;
+            pointer-events: auto;
+        }
     </style>
 
     <script src="/js/bootstrap.colormode.js"></script>

@@ -1,0 +1,52 @@
+<div class="thinking-section">
+    <button class="btn btn-secondary btn-sm d-flex align-items-center justify-content-between rounded-4"
+            type="button"
+            data-bs-toggle="collapse"
+            th:data-bs-target="'#think-body-' + ${id}"
+            aria-expanded="false"
+            aria-controls="collapseContent">
+        <i class="bi bi-lightbulb"></i>
+        <span class="ms-auto me-2" style="padding-left: .5em;">Thoughts</span>
+        <i class="bi bi-chevron-up"></i>
+    </button>
+    <div class="collapse show mt-2 border-start border-5 text-secondary fs-6 message-thoughts"
+         style="padding-left: 1em;"
+         th:id="'think-body-' + ${id}">
+        <span th:id="'msg-think-' + ${id}" th:utext="${thinking}"></span>
+    </div>
+</div>
+<div style="padding-left: 1.5em; margin-top: .7em;">
+    <th:block th:if="${answer == null}">
+        <span th:id="'msg-answer-' + ${id}">
+            <div class="spinner-border text-secondary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </span>
+    </th:block>
+    <th:block th:if="${answer != null}">
+        <span th:id="'msg-answer-' + ${id}" th:utext="${answer}"></span>
+    </th:block>
+</div>
+
+<script>
+    document.body.addEventListener('htmx:load', function(event) {
+        // event.target is the newly added content
+        const newContent = event.target;
+
+        // Check if the new content contains the textarea
+        const collapseElement = newContent.querySelector('.message-thoughts');
+        if (collapseElement) {
+
+            var chevronIcon = collapseElement.previousElementSibling.querySelector('.bi-chevron-up');
+            collapseElement.addEventListener('show.bs.collapse', function () {
+                chevronIcon.classList.remove('bi-chevron-down');
+                chevronIcon.classList.add('bi-chevron-up');
+            });
+
+            collapseElement.addEventListener('hide.bs.collapse', function () {
+                chevronIcon.classList.remove('bi-chevron-up');
+                chevronIcon.classList.add('bi-chevron-down');
+            });
+        }
+    });
+</script>

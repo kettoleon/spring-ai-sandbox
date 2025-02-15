@@ -1,0 +1,17 @@
+<form
+      class="flex-grow-1"
+      th:id="'menu-chat-' + ${chat.id}"
+      th:hx-post="'/api/v1/chats/' + ${chat.id} + '/edit'"
+      th:hx-target="'#menu-chat-' + ${chat.id}"
+      hx-swap="outerHTML"
+      th:hx-vars="${_csrf.parameterName}+':\''+${_csrf.token}+'\''"
+>
+<input
+        class="form-control form-control-sm"
+        type="text"
+        name="title"
+        th:value="${chat.title}"
+        aria-label=".form-control-sm example"
+        autofocus
+/>
+</form>
