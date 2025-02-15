@@ -5,34 +5,32 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
-@SpringBootApplication
-@Import(value = {
-        ErrorController.class,
-        GlobalTemplateVariables.class,
-        JpaNamingStrategy.class,
-        LocalDevelopmentDataInitializer.class,
-        SecurityConfiguration.class
-})
-public class MiraApplication {
+@Controller
+public class MiraController {
 
-    public static void main(String[] args) {
-        SpringApplication.run(MiraApplication.class, args);
-    }
+    @Autowired
+    private AiEnvironment aiEnvironment;
 
-    @Bean
-    public CommandLineRunner main(ChatClient.Builder builder) {
-        return (args) -> {
+    @GetMapping(path = "/mira", produces = MediaType.TEXT_PLAIN_VALUE)
+    public StreamingResponseBody main() {
+        return (outputStream) -> {
 
-            GlobalTemplateVariables.setProjectTitle("Magic Inglish Real Academy");
-            ChatClient chatClient = builder.build();
+            PrintWriter out = new PrintWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
+
+            ChatClient chatClient = aiEnvironment.getDefaultChatClientBuilderWithToolSupport().build();
 
 //           TODO: Adding these rules makes llama3.2 to misunderstand what magic english is and stops translating O.o
 //            Magic English Translation Rules:
@@ -261,18 +259,18 @@ public class MiraApplication {
                     
                     El gato se quedó dormido al sol, estirado en el suelo como si fuera el dueño de la casa.
                     
-                    """);
+                    """, out);
 
-            System.out.println("================================");
-            System.out.println("Result: " + results);
-            System.out.println("================================");
+            out.println("================================");
+            out.println("Result: " + results);
+            out.println("================================");
 
         };
     }
 
-    private String prompt(ChatClient chatClient, String system, String user) {
+    private String prompt(ChatClient chatClient, String system, String user, PrintWriter out) {
         StringBuffer sb = new StringBuffer();
-        System.out.println(">>> " + user);
+        out.println(">>> " + user);
         ChatClient.ChatClientRequestSpec chatcc = chatClient.
                 prompt()
                 .advisors()
@@ -291,10 +289,10 @@ public class MiraApplication {
                             .map(AssistantMessage::getText)
                             .orElse("");
                     sb.append(append);
-                    System.out.print(append);
+                    out.print(append);
                 })
                 .blockLast();
-        System.out.println();
+        out.println();
 
         return sb.toString();
     }

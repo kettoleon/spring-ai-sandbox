@@ -1,6 +1,5 @@
-package com.github.kettoleon.llm.sandbox.pathfinder;
+package com.github.kettoleon.llm.sandbox;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.servlet.ModelAndView;
@@ -8,13 +7,11 @@ import org.springframework.web.servlet.ModelAndView;
 import static com.github.kettoleon.llm.sandbox.common.configuration.GlobalTemplateVariables.page;
 
 @Controller
-@Slf4j
-public class PathfinderController {
+public class SandboxController {
 
-
-    @GetMapping(path = "/cortex")
-    public ModelAndView chats() {
-        return page("cortex/cortex", "Cortex", "Pathfinder Space Program");
+    @GetMapping(path = {"", "/"})
+    public ModelAndView getChats() {
+        return page("home", "Proof of concepts", "Spring AI Sandbox");
     }
 
 

@@ -57,14 +57,29 @@ I think I can start with deepseek and then eventually move to OpenAI when I see 
 needed?
 
 ## Setup
-In order to run the examples, you will need ollama installed locally with a model downloaded,
-and change the `application.properties` with your own preferences as explained in [their docs](https://docs.spring.io/spring-ai/reference/api/chat/ollama-chat.html).
+Currently, it is all a bit of a mess, since I'm in the middle of refactorings.
 
-Alternatively, if you want to use your OpenAI/Azure/Mistral/Anthropic subscriptions, you will need
-to add the dependency in the pom and tweak the `application.properties`. You can find information
-about how to do that in the [Chat Models](https://docs.spring.io/spring-ai/reference/api/chatmodel.html) documentation.
+You will need to change your setup by editing the `AiEnvironment.java` class.
 
-Once you have this setup done, you can proceed to run the different examples.
+By default it expects ollama running in localhost.
+
+You will also need a pgvector database running either locally or somewhere else.
+
+Additionally, we need a couple of environment properties for the clients to work:
+
+```properties
+brave.token=...
+gemini.token=...
+```
+Get your Brave search token from [brave search api](https://brave.com/search/api/).
+And get your gemini token from [google ai studio](https://aistudio.google.com).
+
+## Running
+
+After running the main application you can head to [http://localhost:8080](http://localhost:8080) for a list of concepts.
+
+I'm still in the middle into porting all of them from console apps to controllers under a unified app, so some might not
+work at the moment.
 
 # Proof of concepts / use cases
 
@@ -98,10 +113,6 @@ And here is how it looks with everything together, with syntax highlighting and 
 
 ![](docs/img/chat.answer.png)
 
-### Running Instructions
-
-Run the main application and head to [http://localhost:8080](http://localhost:8080).
-
 ## Helgar
 
 ### Description
@@ -114,10 +125,6 @@ First time trying to do it with LLM function calling. This time I decided to sta
 
 Looks promising, but the function calling with llama 3.2 is still unreliable, so I parked it for now.
 Also, DeepSeek-r1 does not have function calling, so still parked.
-
-### Running Instructions
-
-Run the main application and observe what Helgar decides to do after waking up.
 
 ## Live Translate
 
@@ -149,10 +156,6 @@ Example output:
 ]
 ```
 
-### Running Instructions
-
-Run the main application and observe the console output.
-
 ## Mira
 
 ### Description
@@ -175,10 +178,6 @@ Result: Anonche my abuelita started to flamencobate in the kichen whil my dog wa
 ```
 
 As we can see, the model I'm able to run is not doing a very good job.
-
-### Running Instructions
-
-Run the main application and observe the console output.
 
 ## Mixtenser
 
@@ -319,10 +318,6 @@ Result: Biting off more sushi rolls than you can roll back up will leave you fee
 
 With this example we can see how the chain of thought works, by self-evaluating ten variations and choosing the best.
 
-### Running Instructions
-
-Run the main application and observe the console output until it gives you a new saying.
-
 ## Pathfinder
 
 ### Description
@@ -333,10 +328,6 @@ After reading the books of the Bobiverse series, I was inspired to make a narrat
 
 After doing the first chapter and testing it a few times, I realised that despite the concept seems cool, it also gets old and boring really quickly. Need to rethink, maybe adding other aspects or using a different setting might help to keep it interesting.
 
-### Running Instructions
-
-Run the main application and head to [http://localhost:8080](http://localhost:8080).
-
 ## ByteCoda
 
 ### Description
@@ -346,10 +337,6 @@ With Deepseek-r1 14B, I thought we could build a system that processes a java co
 ### Status
 
 The TPOC is complete but the results are not satisfactory. The model may have been provided with sufficient context to answer the questions, but hallucinates the rest or reaches the maximum context length.
-
-### Running Instructions
-
-For running the application, you will need to set up a postgresql pgvector server and tweak the properties to point to it. Once you have that, run the main application, wait until the vector store is rebuilt, and ask questions in the console (stdin).
 
 ## Web Search
 
@@ -364,8 +351,3 @@ So far, results are mixed. It works well when the model can answer your question
 However, it will go off the rails if it has to try to navigate a web page to gather more specific data. Example: `give me a list of user kettoleon's projects on github`.
 
 On the other hand, I tried copy-pasting the requests to [deepseek chat](https://chat.deepseek.com), and looks like if I paid the API or ran the full model on a cluster, results would be good.
-
-### Running Instructions
-
-For running the application, you will first need to provide an environment property `brave.token` in `application.properties` with the token from [brave search api](https://brave.com/search/api/).
-After that, run the `SearchApplication.java` class and once the spring context is loaded, use stdin to ask a question.

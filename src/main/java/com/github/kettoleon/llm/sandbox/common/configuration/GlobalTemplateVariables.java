@@ -10,13 +10,7 @@ import java.util.Optional;
 @ControllerAdvice(annotations = Controller.class)
 public class GlobalTemplateVariables {
 
-    private static String projectTitle;
-
-    public static void setProjectTitle(String projectTitle) {
-        GlobalTemplateVariables.projectTitle = projectTitle;
-    }
-
-    public static ModelAndView page(String viewId, String title) {
+    public static ModelAndView page(String viewId, String title, String projectTitle) {
         ModelAndView modelAndView = new ModelAndView("index");
         modelAndView.addObject("page", viewId);
         modelAndView.addObject("pageTitle", title);

@@ -5,34 +5,33 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
-@SpringBootApplication
-@Import(value = {
-        ErrorController.class,
-        GlobalTemplateVariables.class,
-        JpaNamingStrategy.class,
-        LocalDevelopmentDataInitializer.class,
-        SecurityConfiguration.class
-})
-public class LiveTranslateApplication {
+@Controller
+public class LiveTranslateController {
 
-    public static void main(String[] args) {
-        SpringApplication.run(LiveTranslateApplication.class, args);
-    }
+    @Autowired
+    private AiEnvironment aiEnvironment;
 
-    @Bean
-    public CommandLineRunner main(ChatClient.Builder builder) {
-        return (args) -> {
+    @GetMapping(path = "/livetranslate", produces = MediaType.TEXT_PLAIN_VALUE)
+    public StreamingResponseBody main() {
+        return (outputStream) -> {
 
-            GlobalTemplateVariables.setProjectTitle("Live Translate");
-            ChatClient chatClient = builder.build();
+            PrintWriter out = new PrintWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
+
+            ChatClient chatClient = aiEnvironment.getDefaultChatClientBuilderWithToolSupport().build();
 
             String system = """
                     You are a multilingual real-time chat translator for an online game. Your task is to translate messages into a specified target language while following strict rules.
@@ -70,15 +69,16 @@ public class LiveTranslateApplication {
                     ]
                     """;
 
-            prompt(chatClient, system, user);
+            prompt(chatClient, system, user, out);
 
 
         };
     }
 
-    private String prompt(ChatClient chatClient, String system, String user) {
+    private String prompt(ChatClient chatClient, String system, String user, PrintWriter out) {
         StringBuffer sb = new StringBuffer();
-        System.out.println(">>> " + user);
+        out.println(">>> " + user);
+        out.flush();
         ChatClient.ChatClientRequestSpec chatcc = chatClient.
                 prompt()
                 .advisors()
@@ -97,10 +97,12 @@ public class LiveTranslateApplication {
                             .map(AssistantMessage::getText)
                             .orElse("");
                     sb.append(append);
-                    System.out.print(append);
+                    out.print(append);
+                    out.flush();
                 })
                 .blockLast();
-        System.out.println();
+        out.println();
+        out.flush();
 
         return sb.toString();
     }

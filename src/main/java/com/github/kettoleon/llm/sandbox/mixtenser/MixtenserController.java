@@ -5,31 +5,28 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
-@SpringBootApplication
-@Import(value = {
-        ErrorController.class,
-        GlobalTemplateVariables.class,
-        JpaNamingStrategy.class,
-        LocalDevelopmentDataInitializer.class,
-        SecurityConfiguration.class
-})
-public class MixtenserApplication {
+@Controller
+public class MixtenserController {
 
-    public static void main(String[] args) {
-        SpringApplication.run(MixtenserApplication.class, args);
-    }
+    @Autowired
+    private AiEnvironment aiEnvironment;
 
-    @Bean
-    public CommandLineRunner main(ChatClient.Builder builder) {
-        return (args) -> {
+    @GetMapping(path = "/mixtenser", produces = MediaType.TEXT_PLAIN_VALUE)
+    public StreamingResponseBody main() {
+        return (outputStream) -> {
+
+            PrintWriter out = new PrintWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
 
             //1) Ask for a saying or idiom
             // 1.1) Check in the db it is a new one or not used for a long time
@@ -37,10 +34,9 @@ public class MixtenserApplication {
             //3) Ask to review/score each of them (together)
             //4) Select the best one (That has not been used yet)
 
-            GlobalTemplateVariables.setProjectTitle("Mixtenser");
-            ChatClient chatClient = builder.build();
+            ChatClient chatClient = aiEnvironment.getDefaultChatClientBuilder().build();
 
-            String saying = prompt(chatClient, "You are a saying or idiom provider. You must provide only the saying, no introduction, notes, explanations or quotation.", "Give me a saying or an idiom in english");
+            String saying = prompt(chatClient, "You are a saying or idiom provider. You must provide only the saying, no introduction, notes, explanations or quotation.", "Give me a saying or an idiom in english", out);
 
             String system_gen = """
                     You are a creative AI specialized in generating humorous and twisted versions of popular sayings, proverbs, or idioms.
@@ -88,7 +84,7 @@ public class MixtenserApplication {
                     """;
 
 
-            String results = prompt(chatClient, system_gen, "Please create ten twisted variations of the following saying or idiom, one in each line: " + saying);
+            String results = prompt(chatClient, system_gen, "Please create ten twisted variations of the following saying or idiom, one in each line: " + saying, out);
 
             String system_eval = """
                     You are a sharp, witty evaluator with a preference for absurdity and sarcasm.
@@ -126,20 +122,22 @@ public class MixtenserApplication {
                     At the end of the output, you must provide the winning variation inside <winner></winner> tags.
                     """;
 
-            String output = prompt(chatClient, system_eval, "Please rate the following twisted sayings and pick the best:\n\n" + results);
+            String output = prompt(chatClient, system_eval, "Please rate the following twisted sayings and pick the best:\n\n" + results, out);
 
             String winner = output.split("<winner>")[1].split("</winner>")[0];
 
-            System.out.println("================================");
-            System.out.println("Result: " + winner);
-            System.out.println("================================");
+            out.println("================================");
+            out.println("Result: " + winner);
+            out.println("================================");
+            out.flush();
 
         };
     }
 
-    private String prompt(ChatClient chatClient, String system, String user) {
+    private String prompt(ChatClient chatClient, String system, String user, PrintWriter out) {
         StringBuffer sb = new StringBuffer();
-        System.out.println(">>> " + user);
+        out.println(">>> " + user);
+        out.flush();
         ChatClient.ChatClientRequestSpec chatcc = chatClient.
                 prompt()
                 .advisors()
@@ -158,10 +156,12 @@ public class MixtenserApplication {
                             .map(AssistantMessage::getText)
                             .orElse("");
                     sb.append(append);
-                    System.out.print(append);
+                    out.print(append);
+                    out.flush();
                 })
                 .blockLast();
-        System.out.println();
+        out.println();
+        out.flush();
 
         return sb.toString();
     }

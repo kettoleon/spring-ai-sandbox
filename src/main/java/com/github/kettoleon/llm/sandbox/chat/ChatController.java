@@ -27,9 +27,9 @@ public class ChatController {
     @Autowired
     private ChatsWebSocketHandler chatsWebSocketHandler;
 
-    @GetMapping(path = {"", "/", "/chats"})
+    @GetMapping(path = "/chats")
     public ModelAndView getChats() {
-        ModelAndView chats = page("chats/chats", "Chats");
+        ModelAndView chats = page("chats/chats", "Chats", "MyChatGPT");
         chats.addObject("chatGroups", makeChatGroups(chatRepository.findAll(Sort.by("created").descending())));
         return chats;
     }

@@ -3,6 +3,7 @@ package com.github.kettoleon.llm.sandbox.pathfinder;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.kettoleon.llm.sandbox.chat.repo.*;
+import com.github.kettoleon.llm.sandbox.common.configuration.AiEnvironment;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -31,11 +32,10 @@ import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvis
 @Slf4j
 public class CortexWebSocketHandler implements WebSocketHandler {
 
-
     public static final String KICKOFF_MESSAGE_NARRATOR = "It is the year 2168, you signed up for the Pathfinder Space Program and were selected as the volunteer to have its mind transferred into a Vonn Neuman probe. The time has arrived, you are lying in the operating room and the sedative is starting to have effect. You don't even realise but you lost your consciousness. Once you regain it you wake up disoriented and say...";
-    @Autowired
-    private ChatClient.Builder builder;
 
+    @Autowired
+    private AiEnvironment aiEnvironment;
 
     private Map<String, Chat> liveChats = new HashMap<>();
     private Map<String, ChatResponse> responses = new HashMap<>();
@@ -64,8 +64,8 @@ public class CortexWebSocketHandler implements WebSocketHandler {
                 .createdBy("assistant")
                 .build());
         MessageChatMemoryAdvisor messageChatMemoryAdvisor = new MessageChatMemoryAdvisor(chatMemory, "1", DEFAULT_CHAT_MEMORY_RESPONSE_SIZE);
-        return builder
-                .defaultSystem(PathfinderApplication.ELIAN_VOSS_SYSTEM)
+        return aiEnvironment.getDefaultChatClientBuilderWithToolSupport()
+                .defaultSystem(PathfinderPrompts.ELIAN_VOSS_SYSTEM)
                 .defaultAdvisors(messageChatMemoryAdvisor)
                 .build();
     }

@@ -1,32 +1,6 @@
 package com.github.kettoleon.llm.sandbox.pathfinder;
 
-import com.github.kettoleon.llm.sandbox.common.configuration.*;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-import org.springframework.ai.chat.memory.InMemoryChatMemory;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.model.Generation;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.util.Optional;
-
-@SpringBootApplication
-@Import(value = {
-        ErrorController.class,
-        GlobalTemplateVariables.class,
-        JpaNamingStrategy.class,
-        LocalDevelopmentDataInitializer.class,
-        SecurityConfiguration.class
-})
-public class PathfinderApplication {
+public class PathfinderPrompts {
 
     public static final String ELIAN_VOSS_SYSTEM = """
             You are Dr. Elián Voss, a leading neuroscientist and cybernetic specialist working for the 
@@ -136,19 +110,5 @@ public class PathfinderApplication {
             physical limitations in the way you once were. And with that freedom comes responsibility. 
             You’ll need to decide how to use it."
             """;
-
-    public static void main(String[] args) {
-        SpringApplication.run(PathfinderApplication.class, args);
-    }
-
-    @Bean
-    public CommandLineRunner main(ChatClient.Builder builder, ChatModel chatModel) {
-        return (args) -> {
-
-            GlobalTemplateVariables.setProjectTitle("Pathfinder Space Program");
-
-        };
-    }
-
 
 }

@@ -8,6 +8,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.converter.BeanOutputConverter;
 
+import java.io.PrintWriter;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -21,15 +22,22 @@ public class PromptTemplate {
     @Setter
     private boolean verbose = false;
 
+    private PrintWriter out;
 
     public PromptTemplate(ChatClient chatClient){
         this.chatClient = chatClient;
+        this.out = new PrintWriter(System.out);
     }
 
-    private String prompt(String system, String user) {
+    public void setOut(PrintWriter out) {
+        this.out = out;
+    }
+
+    public String prompt(String system, String user) {
         StringBuffer sb = new StringBuffer();
         if (verbose) {
-            System.out.println(">>> " + user);
+            out.println(">>> " + user);
+            out.flush();
         }
         ChatClient.ChatClientRequestSpec chatcc = chatClient.
                 prompt()
@@ -50,12 +58,14 @@ public class PromptTemplate {
                             .orElse("");
                     sb.append(append);
                     if (verbose) {
-                        System.out.print(append);
+                        out.print(append);
+                        out.flush();
                     }
                 })
                 .blockLast();
         if (verbose) {
-            System.out.println();
+            out.println();
+            out.flush();
         }
         return sb.toString();
     }
@@ -63,11 +73,12 @@ public class PromptTemplate {
     public <T> Optional<T> promptToBean(String system, String user, Class<T> out) {
         return promptToBean(system, user, out, null);
     }
-    public <T> Optional<T> promptToBean(String system, String user, Class<T> out, Function<String,T> lastResortParser) {
-        BeanOutputConverter<T> boc = new BeanOutputConverter<>(out);
+    public <T> Optional<T> promptToBean(String system, String user, Class<T> outc, Function<String,T> lastResortParser) {
+        BeanOutputConverter<T> boc = new BeanOutputConverter<>(outc);
         String completeSystem = system + "\n\n" + boc.getFormat();
         if (verbose) {
-            System.out.println("$$> " + completeSystem);
+            out.println("$$> " + completeSystem);
+            out.flush();
         }
         String result = prompt(completeSystem, user);
         String answer = substringAfterLast(result, "</think>");
@@ -80,7 +91,8 @@ public class PromptTemplate {
                 return Optional.of(convert);
             } catch (RuntimeException e) {
                 if (verbose) {
-                    System.err.println("Failed to parse LLM answer, asking again for correct format...");
+                    out.println("Failed to parse LLM answer, asking again for correct format...");
+                    out.flush();
                 }
                 result = prompt(buildRetrySystem(boc.getFormat()), answer);
                 answer = substringAfterLast(result, "</think>");

@@ -18,10 +18,10 @@ public class ErrorController implements org.springframework.boot.web.servlet.err
 
         if (status != null) {
             Integer statusCode = Integer.valueOf(status.toString());
-            return page("error", "Error")
+            return page("error", "Error", "Spring Ai Sandbox")
                     .addObject("statusCode", statusCode);
         }
-        return page("error", "Oops! This is so embarrassing...");
+        return page("error", "Oops! This is so embarrassing...", "Spring Ai Sandbox");
     }
 
 }

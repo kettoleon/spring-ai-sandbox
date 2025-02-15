@@ -3,6 +3,7 @@ package com.github.kettoleon.llm.sandbox.chat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.kettoleon.llm.sandbox.chat.repo.*;
+import com.github.kettoleon.llm.sandbox.common.configuration.AiEnvironment;
 import com.github.kettoleon.llm.sandbox.common.util.MarkdownUtils;
 import io.netty.util.internal.StringUtil;
 import lombok.Getter;
@@ -48,7 +49,7 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
     private MessageRepository messageRepository;
 
     @Autowired
-    private ChatClient.Builder builder;
+    private AiEnvironment aiEnvironment;
 
     @Autowired
     private SpringTemplateEngine springTemplateEngine;
@@ -84,7 +85,7 @@ public class ChatsWebSocketHandler implements WebSocketHandler {
 
     private ChatClient newChatClient(String chatId) {
         memoryAdvisors.put(chatId, new MessageChatMemoryAdvisor(new DatabaseChatMemory(chatRepository, messageRepository), chatId, DEFAULT_CHAT_MEMORY_RESPONSE_SIZE));
-        return builder.build();
+        return aiEnvironment.getDefaultChatClientBuilder().build();
     }
 
     public void addChatMessage(Message msg) {
