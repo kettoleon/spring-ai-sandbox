@@ -76,18 +76,27 @@ It aims to be a barebones local replacement of ChatGPT.
 
 ### Status
 
-Basic functionality is there, and it is usable, but it still needs some polish.
+Nowadays, it assumes a reasoner model will always be used.
 
-We are using a system prompt that allows the LLM to "think" with its own chain of thought in a hidden tag,
-and provide the final answer separately.
+I have spent some time polishing the UI, to make it similar to OpenAI / Deepseek.
+
+It has a list of previous chats, you can change their name and delete them:
+
+![](docs/img/chat.list.png)
+
+Also took some time to polish the form for submitting messages:
+
+![](docs/img/chat.form.png)
+
+_Note: the Model selection / Web Search / Use Swarm toggles are still work in progress._
+
+Here is how it looks when the model is still thinking:
 
 ![](docs/img/chat.thinking.png)
 
-The output is formatted as markdown and the code is highlighted.
+And here is how it looks with everything together, with syntax highlighting and all.
 
 ![](docs/img/chat.answer.png)
-
-_(Sadly, llama 3.1 still does not know how to use spring-ai)_
 
 ### Running Instructions
 
